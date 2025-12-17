@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /buyer/
+Disallow: /seller/
+Disallow: /dashboard
+Disallow: /api/
+
+Sitemap: https://escrow.example.com/sitemap.xml
+
