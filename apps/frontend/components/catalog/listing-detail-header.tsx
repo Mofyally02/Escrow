@@ -28,9 +28,10 @@ export function ListingDetailHeader({ listing }: ListingDetailHeaderProps) {
     })}/month`;
   };
 
+  // Allow purchase if user is buyer, admin, or super_admin (all can buy)
   const canPurchase =
     isAuthenticated &&
-    user?.role === 'buyer' &&
+    (user?.role === 'buyer' || user?.role === 'admin' || user?.role === 'super_admin') &&
     listing.state === 'approved';
 
   return (

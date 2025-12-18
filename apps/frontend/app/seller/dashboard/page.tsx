@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ListingStatusBadge } from '@/components/seller/listing-status-badge';
+import { ListingCard } from '@/components/seller/listing-card';
 
 export default function SellerDashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -162,35 +163,9 @@ export default function SellerDashboardPage() {
           </div>
 
           {listings && listings.length > 0 ? (
-            <div className="space-y-4">
-              {listings.slice(0, 5).map((listing) => (
-                <Link
-                  key={listing.id}
-                  href={`/seller/listings/${listing.id}`}
-                  className="block bg-card border rounded-lg p-4 hover:shadow-lg transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold">{listing.title}</h3>
-                        <ListingStatusBadge state={listing.state} />
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{listing.category}</span>
-                        <span>•</span>
-                        <span>{listing.platform}</span>
-                        <span>•</span>
-                        <span>
-                          ${(listing.price_usd / 100).toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </Link>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {listings.slice(0, 6).map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
           ) : (

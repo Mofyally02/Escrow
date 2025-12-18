@@ -16,10 +16,11 @@ export function useSellerListings() {
   return useQuery({
     queryKey: queryKeys.listings.bySeller(0), // Seller listings endpoint
     queryFn: async () => {
-      const response = await apiClient.get<{ listings: Listing[] }>(
+      const response = await apiClient.get<Listing[]>(
         '/listings'
       );
-      return response.data.listings;
+      // Backend returns array directly, not wrapped in object
+      return response.data || [];
     },
     staleTime: 1 * 60 * 1000, // 1 minute
   });
@@ -29,10 +30,11 @@ export function useSellerListing(id: number) {
   return useQuery({
     queryKey: queryKeys.listings.detail(id),
     queryFn: async () => {
-      const response = await apiClient.get<{ listing: Listing }>(
+      const response = await apiClient.get<Listing>(
         `/listings/${id}`
       );
-      return response.data.listing;
+      // Backend returns Listing directly
+      return response.data;
     },
     enabled: !!id && !isNaN(id),
     staleTime: 30 * 1000, // 30 seconds
@@ -45,17 +47,20 @@ export function useCreateListing() {
 
   return useMutation({
     mutationFn: async (data: ListingCreate) => {
-      const response = await apiClient.post<{ listing: Listing }>(
+      const response = await apiClient.post<Listing>(
         '/listings',
         data
       );
-      return response.data.listing;
+      // Backend returns Listing directly
+      return response.data;
     },
     onSuccess: (listing) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
       queryClient.invalidateQueries({
         queryKey: queryKeys.listings.bySeller(0),
       });
+      // Invalidate catalog queries so approved listings appear immediately
+      queryClient.invalidateQueries({ queryKey: queryKeys.catalog.all() });
       toast.success('Listing created successfully!');
       router.push(`/seller/listings/${listing.id}`);
     },
@@ -78,17 +83,22 @@ export function useUpdateListing() {
       id: number;
       data: ListingUpdate;
     }) => {
-      const response = await apiClient.patch<{ listing: Listing }>(
+      const response = await apiClient.patch<Listing>(
         `/listings/${id}`,
         data
       );
-      return response.data.listing;
+      // Backend returns Listing directly
+      return response.data;
     },
     onSuccess: (listing) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.listings.detail(listing.id),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+      // Invalidate catalog if listing is approved
+      if (listing.state === 'approved') {
+        queryClient.invalidateQueries({ queryKey: queryKeys.catalog.all() });
+      }
       toast.success('Listing updated successfully!');
     },
     onError: (error: any) => {
@@ -104,16 +114,19 @@ export function useSubmitListing() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiClient.post<{ listing: Listing }>(
+      const response = await apiClient.post<Listing>(
         `/listings/${id}/submit`
       );
-      return response.data.listing;
+      // Backend returns Listing directly
+      return response.data;
     },
     onSuccess: (listing) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.listings.detail(listing.id),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+      // Invalidate catalog queries (will show when approved)
+      queryClient.invalidateQueries({ queryKey: queryKeys.catalog.all() });
       toast.success('Listing submitted for review!');
     },
     onError: (error: any) => {

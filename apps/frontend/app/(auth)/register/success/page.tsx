@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { AuthCard } from '@/components/auth/auth-card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ export default function RegisterSuccessPage() {
       <div className="text-center space-y-6">
         <div className="flex justify-center">
           <div className="rounded-full bg-primary/10 p-4">
-            <CheckCircle className="h-12 w-12 text-primary" />
+            <CheckCircle2 className="h-12 w-12 text-primary" />
           </div>
         </div>
         <div className="space-y-2">

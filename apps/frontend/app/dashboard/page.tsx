@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Shield } from 'lucide-react';
@@ -8,21 +8,28 @@ import { Shield } from 'lucide-react';
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple redirects
+    if (hasRedirected.current) return;
+
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      hasRedirected.current = true;
+      router.replace('/login');
       return;
     }
 
-    if (user) {
-      // Redirect based on role
+    if (user && !hasRedirected.current) {
+      hasRedirected.current = true;
+      // Redirect based on role - admins go to admin dashboard, others to buyer
       if (user.role === 'admin' || user.role === 'super_admin') {
-        router.push('/admin/dashboard');
+        router.replace('/admin/dashboard');
       } else if (user.role === 'seller') {
-        router.push('/seller/dashboard');
+        // Sellers can also buy, so show unified dashboard
+        router.replace('/buyer/dashboard');
       } else {
-        router.push('/buyer/dashboard');
+        router.replace('/buyer/dashboard');
       }
     }
   }, [user, isAuthenticated, isLoading, router]);

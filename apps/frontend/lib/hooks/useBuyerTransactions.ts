@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
+import { useAuth } from '@/hooks/useAuth';
 import type {
   Transaction,
   TransactionDetail,
@@ -13,15 +14,20 @@ import type {
 } from '@/types/transaction';
 
 export function useBuyerTransactions() {
+  const { isAuthenticated } = useAuth();
+  
   return useQuery({
     queryKey: queryKeys.transactions.myPurchases,
     queryFn: async () => {
-      const response = await apiClient.get<{ transactions: Transaction[] }>(
+      const response = await apiClient.get<Transaction[]>(
         '/transactions'
       );
-      return response.data.transactions;
+      // Backend returns array directly, not wrapped in object
+      return response.data || [];
     },
     staleTime: 1 * 60 * 1000, // 1 minute
+    // Only fetch if user is authenticated
+    enabled: isAuthenticated,
   });
 }
 
@@ -29,10 +35,11 @@ export function useTransactionDetail(id: number) {
   return useQuery({
     queryKey: queryKeys.transactions.detail(id),
     queryFn: async () => {
-      const response = await apiClient.get<{ transaction: TransactionDetail }>(
+      const response = await apiClient.get<TransactionDetail>(
         `/transactions/${id}`
       );
-      return response.data.transaction;
+      // Backend returns TransactionDetailResponse directly
+      return response.data;
     },
     enabled: !!id && !isNaN(id),
     staleTime: 30 * 1000, // 30 seconds (poll for updates)
@@ -122,9 +129,9 @@ export function useRevealCredentials() {
       });
       return response.data;
     },
-    onSuccess: (_, transactionId) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.transactions.detail(transactionId),
+        queryKey: queryKeys.transactions.detail(variables.transactionId),
       });
       toast.success('Credentials revealed! Please save them securely.');
     },

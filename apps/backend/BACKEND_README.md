@@ -226,43 +226,224 @@ python3 --version
 
 ### Starting the Backend
 
-**Before starting, verify installation:**
+#### Quick Start (Development)
+
+**1. Navigate to the backend directory:**
 ```bash
-# Run comprehensive test suite
-python3 run_all_tests.py
+cd apps/backend
 ```
 
-**Development mode (with auto-reload):**
+**2. Activate the virtual environment:**
+```bash
+# On macOS/Linux:
+source venv/bin/activate
+
+# On Windows:
+venv\Scripts\activate
+```
+
+**3. (Optional) Set up environment variables:**
+```bash
+# Create .env file if it doesn't exist
+# The server will use default values if .env is not present
+# For production, you MUST create a .env file with proper values
+```
+
+**4. Start the development server:**
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Production mode:**
+**5. Verify the server is running:**
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+# In a new terminal, test the health endpoint:
+curl http://localhost:8000/health
+
+# Or visit in your browser:
+# - API Docs: http://localhost:8000/docs
+# - Health Check: http://localhost:8000/api/v1/health
 ```
 
-**Using Docker Compose:**
+**Expected output when starting:**
+```
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process
+INFO:     Started server process
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+#### Alternative: Using the Test Server Script
+
+For a quick start with default settings:
+```bash
+cd apps/backend
+./start_test_server.sh
+```
+
+This script will:
+- Check for `.env` file (creates defaults if missing)
+- Start the server with auto-reload
+- Use SQLite database for testing (if no PostgreSQL configured)
+
+#### Production Mode
+
+**For production deployments:**
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Start with multiple workers
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# Or use a process manager like systemd, supervisor, or PM2
+```
+
+#### Using Docker Compose
+
+**If using Docker:**
 ```bash
 cd ../../infra
 docker-compose up backend
 ```
 
-**Verify server is running:**
-```bash
-# Check health endpoint
-curl http://localhost:8000/api/v1/health
+#### Server Endpoints
 
-# Or visit in browser
-open http://localhost:8000/docs
-```
-
-The API will be available at:
-- **API**: http://localhost:8000
+Once running, the API will be available at:
+- **API Root**: http://localhost:8000
 - **Swagger Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/api/v1/health
+- **Health Check**: http://localhost:8000/health
+- **API Health**: http://localhost:8000/api/v1/health
 - **Metrics**: http://localhost:8000/api/v1/metrics
+
+#### Stopping the Server
+
+**To stop the server:**
+- Press `Ctrl+C` in the terminal where it's running
+- Or find and kill the process:
+  ```bash
+  # Find process on port 8000
+  lsof -ti:8000
+  
+  # Kill the process
+  kill $(lsof -ti:8000)
+  ```
+
+#### Troubleshooting Startup Issues
+
+**Port already in use:**
+```bash
+# Find what's using port 8000
+lsof -i :8000
+
+# Kill the process or use a different port:
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+**Database connection errors:**
+- Check PostgreSQL is running: `pg_isready`
+- Verify `DATABASE_URL` in `.env` file
+- For quick testing, the server can use SQLite (defaults if no `.env`)
+
+**Module not found errors:**
+- Ensure virtual environment is activated: `source venv/bin/activate`
+- Reinstall dependencies: `pip install -r requirements.txt`
+
+**Before starting, verify installation (optional):**
+```bash
+# Run comprehensive test suite
+python3 run_all_tests.py
+```
+
+## 👤 Admin Access
+
+### Setting Up Admin Users
+
+To access admin routes (`/admin/dashboard`, `/admin/listings`, etc.), you need to set a user's role to `admin` or `super_admin`.
+
+#### Option 1: Using the Make Admin Script (Recommended)
+
+**1. List all users to find the email:**
+```bash
+cd apps/backend
+source venv/bin/activate
+python scripts/list_users.py
+```
+
+**2. Set a user as admin:**
+```bash
+# Set as admin
+python scripts/make_admin.py user@example.com admin
+
+# Or set as super_admin
+python scripts/make_admin.py user@example.com super_admin
+```
+
+**Example:**
+```bash
+$ python scripts/list_users.py
+
+ID    Email                          Name                      Role            Active   Created
+------------------------------------------------------------------------------------------------------------------------
+1     john@example.com               John Doe                  buyer           ✓        2025-12-17 10:30
+2     admin@example.com               Admin User                buyer           ✓        2025-12-17 11:00
+
+Total users: 2
+
+$ python scripts/make_admin.py admin@example.com admin
+✅ Successfully set user 'admin@example.com' role from 'buyer' to 'admin'
+   User ID: 2
+   Full Name: Admin User
+   New Role: admin
+```
+
+#### Option 2: Direct Database Update
+
+**Using psql:**
+```bash
+# Connect to database
+psql -h localhost -p 5432 -U escrow -d escrow_dev
+
+# Update user role
+UPDATE users SET role = 'admin' WHERE email = 'user@example.com';
+
+# Or for super_admin
+UPDATE users SET role = 'super_admin' WHERE email = 'user@example.com';
+
+# Verify
+SELECT id, email, full_name, role FROM users WHERE email = 'user@example.com';
+```
+
+### Accessing Admin Routes
+
+Once a user has the `admin` or `super_admin` role:
+
+1. **Login with the admin user credentials** (email and password)
+2. **The dashboard will automatically redirect** to `/admin/dashboard` based on role
+3. **Or navigate directly** to:
+   - `/admin/dashboard` - Admin dashboard
+   - `/admin/listings` - Listing moderation queue
+   - `/admin/transactions` - Transaction management
+   - `/admin/users` - User management
+   - `/admin/analytics` - Platform analytics
+
+### Role Permissions
+
+- **`admin`**: Can access all admin routes, moderate listings, manage transactions
+- **`super_admin`**: Same as admin, plus additional super admin operations
+- **`seller`**: Can create and manage listings
+- **`buyer`**: Can browse catalog and make purchases
+
+### Admin API Endpoints
+
+All admin endpoints require authentication and the `admin` or `super_admin` role:
+
+- `GET /api/v1/admin/listings` - Get listings for review
+- `POST /api/v1/admin/listings/{id}/approve` - Approve listing
+- `POST /api/v1/admin/listings/{id}/reject` - Reject listing
+- `GET /api/v1/admin/transactions` - List all transactions (super_admin only)
+- `POST /api/v1/admin/transactions/{id}/release` - Force release funds (super_admin only)
 
 ## 🧪 Testing
 

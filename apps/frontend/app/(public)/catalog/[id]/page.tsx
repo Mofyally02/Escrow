@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Shield, Lock, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Shield, LockKeyhole, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { useListingDetail } from '@/lib/hooks/useCatalog';
 import { ListingDetailHeader } from '@/components/catalog/listing-detail-header';
 import { Loader2 } from 'lucide-react';
@@ -81,7 +81,7 @@ export default function ListingDetailPage() {
               </div>
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-primary/10 p-2">
-                  <Lock className="h-5 w-5 text-primary" />
+                  <LockKeyhole className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Escrow Protected</h3>
@@ -93,7 +93,7 @@ export default function ListingDetailPage() {
               </div>
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-primary/10 p-2">
-                  <CheckCircle className="h-5 w-5 text-primary" />
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Secure Handover</h3>

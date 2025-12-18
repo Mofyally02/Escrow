@@ -34,31 +34,10 @@ class RegisterRequest(BaseModel):
         return v
 
 
-class VerifyOTPRequest(BaseModel):
-    """OTP verification request"""
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    code: str = Field(..., min_length=6, max_length=6)
-    
-    @validator('code')
-    def validate_code(cls, v):
-        """OTP code must be 6 digits"""
-        if not v.isdigit():
-            raise ValueError('OTP code must be 6 digits')
-        return v
-    
-    @validator('email', 'phone')
-    def validate_identifier(cls, v, values):
-        """Either email or phone must be provided"""
-        if not v and not values.get('email') and not values.get('phone'):
-            raise ValueError('Either email or phone must be provided')
-        return v
-
-
 class LoginRequest(BaseModel):
-    """User login request"""
-    email_or_phone: str = Field(..., min_length=3)
-    password: str = Field(..., min_length=1)
+    """User login request - email and password only"""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., min_length=1, description="User password")
 
 
 class TokenResponse(BaseModel):

@@ -21,6 +21,12 @@ export interface CatalogListing {
 
 export interface ListingDetail extends CatalogListing {
   proof_count?: number;
+  proofs?: ListingProof[];
+  seller?: {
+    id: number;
+    full_name: string;
+    email?: string;
+  };
   // Note: Backend may not return seller details or proofs in public endpoint
   // These would be fetched separately if needed
 }

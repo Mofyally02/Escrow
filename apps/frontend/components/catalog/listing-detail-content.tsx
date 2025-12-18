@@ -1,11 +1,11 @@
 'use client';
 
-import { Shield, Lock, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Shield, LockKeyhole, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { ListingDetailHeader } from './listing-detail-header';
-import type { CatalogListing } from '@/types/catalog';
+import type { ListingDetail } from '@/types/catalog';
 
 interface ListingDetailContentProps {
-  listing: CatalogListing;
+  listing: ListingDetail;
 }
 
 export function ListingDetailContent({ listing }: ListingDetailContentProps) {
@@ -136,7 +136,7 @@ export function ListingDetailContent({ listing }: ListingDetailContentProps) {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Lock className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                <LockKeyhole className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-1">Escrow Protected</h3>
                   <p className="text-sm text-muted-foreground">
@@ -146,7 +146,7 @@ export function ListingDetailContent({ listing }: ListingDetailContentProps) {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold mb-1">Secure Handover</h3>
                   <p className="text-sm text-muted-foreground">

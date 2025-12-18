@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, MessageSquare, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, HelpCircle, Loader2 } from 'lucide-react';
 import {
   useApproveListing,
   useRejectListing,
@@ -121,7 +121,7 @@ export function AdminActionButtons({
             onClick={() => setShowRequestDialog(true)}
             disabled={requestMoreInfo.isPending}
           >
-            <MessageSquare className="h-4 w-4 mr-2" />
+            <HelpCircle className="h-4 w-4 mr-2" />
             Request Info
           </Button>
         )}

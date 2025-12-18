@@ -57,7 +57,7 @@ class AuditLog(Timestamped):
     __tablename__ = "audit_logs"
     
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Nullable for failed logins
-    action = Column(SQLEnum(AuditAction), nullable=False, index=True)
+    action = Column(SQLEnum(AuditAction, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     details = Column(Text, nullable=True)  # JSON string for additional context

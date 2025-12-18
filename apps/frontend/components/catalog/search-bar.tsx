@@ -21,6 +21,12 @@ export function SearchBar({
   const [localValue, setLocalValue] = useState(value);
   const debouncedValue = useDebounce(localValue, 300);
 
+  // Sync local value with prop when it changes externally
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  // Notify parent of debounced value changes
   useEffect(() => {
     onChange(debouncedValue);
   }, [debouncedValue, onChange]);

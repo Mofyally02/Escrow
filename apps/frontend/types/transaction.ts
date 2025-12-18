@@ -45,7 +45,7 @@ export interface Transaction {
   };
 }
 
-export interface TransactionDetail extends Transaction {
+export interface TransactionDetail extends Omit<Transaction, 'contract' | 'listing'> {
   listing: {
     id: number;
     title: string;
@@ -54,7 +54,7 @@ export interface TransactionDetail extends Transaction {
     price_usd: number;
     description: string | null;
   };
-  contract: {
+  contract?: {
     id: number;
     pdf_url: string;
     signed_by_name: string | null;

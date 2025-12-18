@@ -8,7 +8,7 @@ import { PaystackCheckoutButton } from '@/components/buyer/paystack-checkout-but
 import { ContractSigner } from '@/components/buyer/contract-signer';
 import { AccessConfirmationDialog } from '@/components/buyer/access-confirmation-dialog';
 import { Button } from '@/components/ui/button';
-import { Shield, Lock, Eye, CheckCircle2 } from 'lucide-react';
+import { Shield, LockKeyhole, Eye, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -157,7 +157,7 @@ export default function TransactionDetailPage() {
             <div className="bg-card border rounded-lg p-6">
               <div className="flex items-start gap-3 mb-4">
                 <div className="rounded-full bg-primary/10 p-2">
-                  <Lock className="h-5 w-5 text-primary" />
+                  <LockKeyhole className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold mb-1">Reveal Credentials</h3>

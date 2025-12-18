@@ -3,13 +3,13 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
-import type { CatalogListing, CatalogListingDetail, CatalogFilters } from '@/types/catalog';
+import type { CatalogListing, ListingDetail, CatalogFilters } from '@/types/catalog';
 
 const CATALOG_PAGE_SIZE = 20;
 
 export function useCatalog(filters: CatalogFilters = {}) {
   return useInfiniteQuery({
-    queryKey: queryKeys.listings.catalog(filters),
+    queryKey: queryKeys.listings.catalog(filters as Record<string, unknown>),
     queryFn: async ({ pageParam = 0 }) => {
       const params = new URLSearchParams();
       if (filters.category) params.append('category', filters.category);
@@ -35,7 +35,7 @@ export function useListingDetail(id: number) {
   return useQuery({
     queryKey: queryKeys.listings.detail(id),
     queryFn: async () => {
-      const response = await apiClient.get<CatalogListingDetail>(`/catalog/${id}`);
+      const response = await apiClient.get<ListingDetail>(`/catalog/${id}`);
       return response.data;
     },
     enabled: !!id,

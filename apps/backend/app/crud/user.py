@@ -33,6 +33,11 @@ def get_user_by_email_or_phone(db: Session, email_or_phone: str) -> Optional[Use
 
 def create_user(db: Session, user_data: UserCreate) -> User:
     """Create a new user"""
+    # #region agent log
+    import json, time
+    log_data = {"location":"app/crud/user.py:34","message":"create_user called","data":{"email":user_data.email,"phone":user_data.phone,"full_name":user_data.full_name},"timestamp":int(time.time()*1000),"sessionId":"auth-verification","runId":"pre-fix","hypothesisId":"A"}
+    with open("/Users/mofyally/Documents/AI Projects/.cursor/debug.log", "a") as f: f.write(json.dumps(log_data) + "\n")
+    # #endregion
     hashed_password = hash_password(user_data.password)
     
     db_user = User(
@@ -46,6 +51,10 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     db.commit()
     db.refresh(db_user)
     
+    # #region agent log
+    log_data = {"location":"app/crud/user.py:48","message":"User created in database","data":{"user_id":str(db_user.id),"email":db_user.email,"created":True},"timestamp":int(time.time()*1000),"sessionId":"auth-verification","runId":"pre-fix","hypothesisId":"A"}
+    with open("/Users/mofyally/Documents/AI Projects/.cursor/debug.log", "a") as f: f.write(json.dumps(log_data) + "\n")
+    # #endregion
     return db_user
 
 

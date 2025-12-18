@@ -1,13 +1,10 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Shield, Lock, CheckCircle, ArrowRight } from 'lucide-react';
-import { Navbar } from '@/components/layout/navbar';
+import { Shield, LockKeyhole, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
   return (
-    <>
-      <Navbar />
-      <div className="flex flex-col">
+    <div className="flex flex-col">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-3xl mx-auto">
@@ -54,7 +51,7 @@ export default function HomePage() {
 
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <Lock className="h-8 w-8 text-primary" />
+                <LockKeyhole className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">
                 Encrypted Credentials
@@ -66,7 +63,7 @@ export default function HomePage() {
 
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <CheckCircle className="h-8 w-8 text-primary" />
+                <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">
                 Escrow Protected
@@ -119,6 +116,5 @@ export default function HomePage() {
         </div>
       </section>
     </div>
-    </>
   );
 }

@@ -24,7 +24,7 @@ class Transaction(Timestamped):
     
     # Amount in USD cents
     amount_usd = Column(Integer, nullable=False)
-    state = Column(SQLEnum(TransactionState), default=TransactionState.PENDING, nullable=False, index=True)
+    state = Column(SQLEnum(TransactionState, values_callable=lambda x: [e.value for e in x]), default=TransactionState.PENDING, nullable=False, index=True)
     
     # Paystack details
     paystack_reference = Column(String(255), unique=True, nullable=True, index=True)

@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAdminAnalytics } from '@/lib/hooks/useAdminData';
 import { AnalyticsCards } from '@/components/admin/analytics-cards';
 import { Button } from '@/components/ui/button';
-import { Shield, FileText, ShoppingBag, Users, ArrowRight } from 'lucide-react';
+import { Shield, FileText, ShoppingBag, UsersRound, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 
@@ -91,7 +91,7 @@ export default function AdminDashboardPage() {
           >
             <div className="flex items-center gap-4">
               <div className="rounded-full bg-green-100 p-3">
-                <Users className="h-6 w-6 text-green-600" />
+                <UsersRound className="h-6 w-6 text-green-600" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-1">Users</h3>

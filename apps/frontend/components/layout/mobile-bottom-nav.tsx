@@ -15,6 +15,7 @@ export function MobileBottomNav() {
     return null;
   }
 
+  // All authenticated users can access both buyer and seller features
   const navItems = [
     {
       href: '/',
@@ -26,24 +27,16 @@ export function MobileBottomNav() {
       label: 'Browse',
       icon: ShoppingBag,
     },
-    ...(user.role === 'seller'
-      ? [
-          {
-            href: '/seller/listings',
-            label: 'Listings',
-            icon: FileText,
-          },
-        ]
-      : []),
-    ...(user.role === 'buyer'
-      ? [
-          {
-            href: '/buyer/purchases',
-            label: 'Purchases',
-            icon: ShoppingBag,
-          },
-        ]
-      : []),
+    {
+      href: '/buyer/purchases',
+      label: 'Purchases',
+      icon: ShoppingBag,
+    },
+    {
+      href: '/seller/dashboard',
+      label: 'Listings',
+      icon: FileText,
+    },
     {
       href: '/dashboard',
       label: 'Profile',

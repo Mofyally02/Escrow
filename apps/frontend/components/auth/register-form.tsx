@@ -25,12 +25,9 @@ export function RegisterForm() {
       const response = await apiClient.post('/auth/register', data);
       return response.data;
     },
-    onSuccess: (_, variables) => {
-      // Store email and phone for verification step
-      localStorage.setItem('register_email', variables.email);
-      localStorage.setItem('register_phone', variables.phone);
-      toast.success('Registration successful! Please verify your email and phone.');
-      router.push('/register/verify');
+    onSuccess: () => {
+      toast.success('Registration successful! Please login to continue.');
+      router.push('/login');
     },
     onError: (error: any) => {
       const message =
@@ -47,7 +44,6 @@ export function RegisterForm() {
     <AuthCard
       title="Create Your Account"
       description="Join ESCROW to buy or sell freelance accounts safely"
-      step={{ current: 1, total: 2 }}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>

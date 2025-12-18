@@ -20,7 +20,7 @@ class User(Timestamped):
     phone = Column(String(20), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
-    role = Column(SQLEnum(Role), default=Role.BUYER, nullable=False)
+    role = Column(SQLEnum(Role, values_callable=lambda x: [e.value for e in x]), default=Role.BUYER, nullable=False)
     
     # Verification status
     is_active = Column(Boolean, default=True, nullable=False)
@@ -34,9 +34,15 @@ class User(Timestamped):
     
     # Relationships
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
-    otp_codes = relationship("OTPCode", back_populates="user", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
-    listings = relationship("Listing", back_populates="seller")
+    # Specify foreign_keys to disambiguate between seller_id and reviewed_by
+    # Listing has both seller_id and reviewed_by FKs to users.id
+    # We need to explicitly specify which FK to use for the listings relationship
+    listings = relationship(
+        "Listing",
+        foreign_keys="Listing.seller_id",
+        back_populates="seller"
+    )
     transactions_as_buyer = relationship("Transaction", foreign_keys="Transaction.buyer_id", back_populates="buyer")
     transactions_as_seller = relationship("Transaction", foreign_keys="Transaction.seller_id", back_populates="seller")
     

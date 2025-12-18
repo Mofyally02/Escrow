@@ -32,9 +32,9 @@ export function useRevealCredentials() {
       );
       return response.data;
     },
-    onSuccess: (credentials, transactionId) => {
+    onSuccess: (credentials, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.transactions.detail(transactionId),
+        queryKey: queryKeys.transactions.detail(variables.transactionId),
       });
       toast.success('Credentials revealed successfully!');
     },

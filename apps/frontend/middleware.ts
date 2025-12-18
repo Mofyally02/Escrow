@@ -48,18 +48,9 @@ export function middleware(request: NextRequest) {
   );
 
   if (isProtected) {
-    // Check for auth cookie (set by backend)
-    const authCookie = request.cookies.get('access_token') ||
-      request.cookies.get('refresh_token');
-
-    if (!authCookie) {
-      // No auth cookie - redirect to login
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Auth cookie exists - let client-side handle role-based routing
+    // Check for auth cookie (set by backend) or allow client-side to handle
+    // Since we're using localStorage, we can't check it in middleware
+    // Let the client-side auth check handle redirects
     // The API will return 401/403 if user doesn't have access
     return NextResponse.next();
   }

@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -23,9 +25,19 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Add validation error handler for better error messages
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors with detailed error messages"""
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body if hasattr(exc, 'body') else None}
+    )
+
 # Initialize observability
 setup_sentry()
 logger.info(f"Starting ESCROW API in {settings.ENVIRONMENT} mode")
+
 
 # Security middleware (must be before CORS)
 app.add_middleware(SecurityHeadersMiddleware)

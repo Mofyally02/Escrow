@@ -21,7 +21,7 @@ class PaymentEvent(Timestamped):
     __tablename__ = "payment_events"
     
     transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=False, index=True)
-    event_type = Column(SQLEnum(PaymentEventType), nullable=False, index=True)
+    event_type = Column(SQLEnum(PaymentEventType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     
     # Paystack event details
     paystack_event_id = Column(String(255), unique=True, nullable=True, index=True)

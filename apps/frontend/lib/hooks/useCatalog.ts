@@ -9,7 +9,7 @@ const PAGE_SIZE = 12;
 
 export function useCatalogList(filters: CatalogFilters = {}) {
   return useInfiniteQuery({
-    queryKey: queryKeys.listings.catalog(filters),
+    queryKey: queryKeys.listings.catalog(filters as Record<string, unknown>),
     queryFn: async ({ pageParam = 0 }) => {
       const params = new URLSearchParams({
         skip: (pageParam * PAGE_SIZE).toString(),

@@ -1,19 +1,25 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Shield, Filter, X } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Shield, Filter, X, ShoppingBag, Store, Plus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ListingGrid } from '@/components/catalog/listing-grid';
 import { FiltersSidebar } from '@/components/catalog/filters-sidebar';
 import { SearchBar } from '@/components/catalog/search-bar';
 import { CategoryTabs } from '@/components/catalog/category-tabs';
+import { ModeSwitcher } from '@/components/common/mode-switcher';
 import { useCatalogList } from '@/lib/hooks/useCatalog';
+import { useUserMode } from '@/hooks/useUserMode';
+import { useAuth } from '@/hooks/useAuth';
 import { CatalogFilters } from '@/types/catalog';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function CatalogPage() {
   const [filters, setFilters] = useState<CatalogFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const { mode, changeMode, canBuy, canSell, hasBothModes } = useUserMode();
+  const { isAuthenticated } = useAuth();
 
   const {
     data,
@@ -29,17 +35,20 @@ export default function CatalogPage() {
     [data]
   );
 
-  const handleFiltersChange = (newFilters: CatalogFilters) => {
+  const handleFiltersChange = useCallback((newFilters: CatalogFilters) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  const handleCategoryChange = (category: string | undefined) => {
+  const handleCategoryChange = useCallback((category: string | undefined) => {
     setFilters((prev) => ({ ...prev, category }));
-  };
+  }, []);
 
-  const handleSearchChange = (search: string) => {
-    setFilters((prev) => ({ ...prev, search: search || undefined }));
-  };
+  const handleSearchChange = useCallback((search: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      search: search || undefined,
+    }));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,12 +58,59 @@ export default function CatalogPage() {
           <div className="max-w-3xl mx-auto text-center space-y-4">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Shield className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-bold">Browse Verified Accounts</h1>
+              <h1 className="text-4xl font-bold">
+                {mode === 'buyer' ? 'Browse Verified Accounts' : 'Your Selling Hub'}
+              </h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              Discover established freelance accounts verified by our team.
-              Every listing is escrow-protected and admin-reviewed.
+              {mode === 'buyer'
+                ? 'Discover established freelance accounts verified by our team. Every listing is escrow-protected and admin-reviewed.'
+                : 'Manage your listings and reach buyers looking for verified accounts. List your accounts and start selling today.'}
             </p>
+            
+            {/* Mode Switcher - Only show if user can do both */}
+            {isAuthenticated && hasBothModes && (
+              <div className="flex justify-center pt-4">
+                <ModeSwitcher
+                  currentMode="both"
+                  onModeChange={changeMode}
+                  className="max-w-xs"
+                />
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            {isAuthenticated && (
+              <div className="flex items-center justify-center gap-4 pt-6 flex-wrap">
+                {mode === 'buyer' && canBuy && (
+                  <Button size="lg" asChild>
+                    <Link href="/buyer/purchases">
+                      <ShoppingBag className="h-4 w-4 mr-2" />
+                      My Purchases
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                )}
+                {mode === 'seller' && canSell && (
+                  <>
+                    <Button size="lg" asChild>
+                      <Link href="/seller/dashboard">
+                        <Store className="h-4 w-4 mr-2" />
+                        My Listings
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
+                    <Button size="lg" variant="outline" asChild>
+                      <Link href="/seller/submit">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Submit New Listing
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-center gap-4 pt-4">
               <div className="flex items-center gap-2 text-sm">
                 <Shield className="h-4 w-4 text-primary" />
@@ -87,13 +143,20 @@ export default function CatalogPage() {
           <main className="flex-1 space-y-6">
             {/* Search and Filters Bar */}
             <div className="space-y-4">
-              <div className="flex gap-4 items-center">
-                <div className="flex-1">
+              <div className="flex gap-4 items-center flex-wrap">
+                <div className="flex-1 min-w-[200px]">
                   <SearchBar
                     value={filters.search || ''}
                     onChange={handleSearchChange}
                   />
                 </div>
+                {isAuthenticated && hasBothModes && (
+                  <ModeSwitcher
+                    currentMode="both"
+                    onModeChange={changeMode}
+                    className="hidden sm:flex"
+                  />
+                )}
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
@@ -104,10 +167,40 @@ export default function CatalogPage() {
                 </Button>
               </div>
 
-              <CategoryTabs
-                activeCategory={filters.category}
-                onCategoryChange={handleCategoryChange}
-              />
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <CategoryTabs
+                  activeCategory={filters.category}
+                  onCategoryChange={handleCategoryChange}
+                />
+                {isAuthenticated && (
+                  <div className="flex gap-2">
+                    {mode === 'buyer' && canBuy && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/buyer/purchases">
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                          My Purchases
+                        </Link>
+                      </Button>
+                    )}
+                    {mode === 'seller' && canSell && (
+                      <>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href="/seller/dashboard">
+                            <Store className="h-4 w-4 mr-2" />
+                            My Listings
+                          </Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                          <Link href="/seller/submit">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Submit Listing
+                          </Link>
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Results */}

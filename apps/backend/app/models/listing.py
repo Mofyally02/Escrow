@@ -24,7 +24,7 @@ class Listing(Timestamped):
     price_usd = Column(Integer, nullable=False)  # Price in USD cents
     
     description = Column(Text, nullable=True)
-    state = Column(SQLEnum(ListingState), default=ListingState.DRAFT, nullable=False, index=True)
+    state = Column(SQLEnum(ListingState, values_callable=lambda x: [e.value for e in x]), default=ListingState.DRAFT, nullable=False, index=True)
     
     # Account metadata
     monthly_earnings = Column(Integer, nullable=True)  # Monthly earnings in USD cents

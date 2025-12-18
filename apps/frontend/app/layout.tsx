@@ -5,9 +5,10 @@ import { ThemeProvider } from '@/components/providers/theme-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { Navbar } from '@/components/layout/navbar';
-import { ErrorBoundary } from '@/components/error-boundary';
+import { ErrorBoundaryWrapper } from '@/components/error-boundary-wrapper';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { SkipLink } from '@/components/accessibility/skip-link';
+import { BetaBanner } from '@/components/beta/beta-banner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -69,11 +70,11 @@ export const metadata: Metadata = {
     initialScale: 1,
     maximumScale: 5,
     userScalable: true,
-    themeColor: [
-      { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-      { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
-    ],
   },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 };
 
 export default function RootLayout({
@@ -88,7 +89,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={inter.className}>
-        <ErrorBoundary>
+        <ErrorBoundaryWrapper>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -108,7 +109,7 @@ export default function RootLayout({
               <Toaster />
             </QueryProvider>
           </ThemeProvider>
-        </ErrorBoundary>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

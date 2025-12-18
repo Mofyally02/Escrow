@@ -17,11 +17,16 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor - attach JWT token from cookie
+// Request interceptor - attach JWT token from localStorage
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // JWT token is stored in httpOnly cookie, so it's automatically sent
-    // No need to manually attach it here
+    // Get access token from localStorage
+    if (typeof window !== 'undefined') {
+      const accessToken = localStorage.getItem('access_token');
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
+    }
     return config;
   },
   (error) => {
@@ -44,19 +49,58 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
+        // Get refresh token from localStorage or cookie
+        let refreshToken: string | null = null;
+        if (typeof window !== 'undefined') {
+          // Try to get from localStorage first
+          refreshToken = localStorage.getItem('refresh_token');
+          
+          // If not in localStorage, try to get from cookies
+          if (!refreshToken) {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+              const [name, value] = cookie.trim().split('=');
+              if (name === 'refresh_token') {
+                refreshToken = decodeURIComponent(value);
+                break;
+              }
+            }
+          }
+        }
+
+        if (!refreshToken) {
+          // No refresh token available - clear tokens and let client handle redirect
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            // Don't redirect here - let the component handle it
+          }
+          return Promise.reject(error);
+        }
+
         // Attempt to refresh token
-        await axios.post(
+        const refreshResponse = await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
-          {},
+          { refresh_token: refreshToken },
           { withCredentials: true }
         );
+
+        // Store new access token in localStorage
+        if (refreshResponse.data?.access_token && typeof window !== 'undefined') {
+          localStorage.setItem('access_token', refreshResponse.data.access_token);
+        }
+        if (refreshResponse.data?.refresh_token && typeof window !== 'undefined') {
+          localStorage.setItem('refresh_token', refreshResponse.data.refresh_token);
+        }
 
         // Retry original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - redirect to login
+        // Refresh failed - clear tokens and let client handle redirect
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          // Don't redirect here - let the component handle it
         }
         return Promise.reject(refreshError);
       }

@@ -17,7 +17,7 @@ class ListingProof(Timestamped):
     __tablename__ = "listing_proofs"
     
     listing_id = Column(Integer, ForeignKey("listings.id"), nullable=False, index=True)
-    proof_type = Column(SQLEnum(ProofType), nullable=False)
+    proof_type = Column(SQLEnum(ProofType, values_callable=lambda x: [e.value for e in x]), nullable=False)
     
     # File storage (Cloudinary URL or S3 key)
     file_url = Column(String(500), nullable=False)

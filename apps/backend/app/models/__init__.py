@@ -1,6 +1,5 @@
 from app.models.base import Timestamped
 from app.models.user import User, Role
-from app.models.otp_code import OTPCode, OTPType
 from app.models.refresh_token import RefreshToken
 from app.models.audit_log import AuditLog, AuditAction
 from app.models.listing import Listing, ListingState
@@ -14,8 +13,6 @@ __all__ = [
     "Timestamped",
     "User",
     "Role",
-    "OTPCode",
-    "OTPType",
     "RefreshToken",
     "AuditLog",
     "AuditAction",

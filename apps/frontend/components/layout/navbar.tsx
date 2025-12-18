@@ -28,19 +28,26 @@ export function Navbar() {
       { href: '/seller/submit', label: 'Submit Listing', icon: Shield },
     ],
     admin: [
+      { href: '/buyer/dashboard', label: 'My Purchases', icon: ShoppingBag },
+      { href: '/seller/dashboard', label: 'My Listings', icon: User },
       { href: '/admin/dashboard', label: 'Moderation Queue', icon: Shield },
       { href: '/admin/transactions', label: 'Transactions', icon: Lock },
     ],
     super_admin: [
+      { href: '/buyer/dashboard', label: 'My Purchases', icon: ShoppingBag },
+      { href: '/seller/dashboard', label: 'My Listings', icon: User },
       { href: '/admin/dashboard', label: 'Moderation Queue', icon: Shield },
       { href: '/admin/transactions', label: 'Transactions', icon: Lock },
-      { href: '/admin/settings', label: 'Settings', icon: Lock },
     ],
   };
 
   const getRoleLinks = () => {
     if (!user?.role) return [];
-    return roleBasedLinks[user.role as keyof typeof roleBasedLinks] || [];
+    const links = roleBasedLinks[user.role as keyof typeof roleBasedLinks] || [];
+    
+    // For admins/super_admins, show both buyer and seller links
+    // For regular users, show based on their role
+    return links;
   };
 
   return (

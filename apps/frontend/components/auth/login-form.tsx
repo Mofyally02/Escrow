@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { AuthCard } from './auth-card';
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
 import apiClient from '@/lib/api';
-
 export function LoginForm() {
   const router = useRouter();
+  
   const {
     register,
     handleSubmit,
@@ -22,12 +22,26 @@ export function LoginForm() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      const response = await apiClient.post('/auth/login', data);
+      const response = await apiClient.post('/auth/login', {
+        email: data.email,
+        password: data.password,
+      });
       return response.data;
     },
-    onSuccess: () => {
-      toast.success('Login successful! Please verify with OTP.');
-      router.push('/login/verify');
+    onSuccess: (data) => {
+      // Store tokens in localStorage
+      if (data?.access_token && typeof window !== 'undefined') {
+        localStorage.setItem('access_token', data.access_token);
+      }
+      if (data?.refresh_token && typeof window !== 'undefined') {
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
+
+      toast.success('Login successful! Redirecting...');
+      // Use replace to prevent back navigation and avoid refresh loops
+      setTimeout(() => {
+        router.replace('/dashboard');
+      }, 100);
     },
     onError: (error: any) => {
       const message =
@@ -44,23 +58,22 @@ export function LoginForm() {
     <AuthCard
       title="Welcome Back"
       description="Sign in to your ESCROW account"
-      step={{ current: 1, total: 2 }}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label htmlFor="identifier" className="block text-sm font-medium mb-1">
-            Email or Phone Number
+          <label htmlFor="email" className="block text-sm font-medium mb-1">
+            Email Address
           </label>
           <input
-            id="identifier"
-            type="text"
-            {...register('identifier')}
+            id="email"
+            type="email"
+            {...register('email')}
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="you@example.com or +1234567890"
+            placeholder="you@example.com"
           />
-          {errors.identifier && (
+          {errors.email && (
             <p className="mt-1 text-sm text-destructive">
-              {errors.identifier.message}
+              {errors.email.message}
             </p>
           )}
         </div>
@@ -86,7 +99,7 @@ export function LoginForm() {
           className="w-full"
           disabled={isSubmitting || loginMutation.isPending}
         >
-          {isSubmitting || loginMutation.isPending ? 'Signing In...' : 'Continue'}
+          {isSubmitting || loginMutation.isPending ? 'Signing in...' : 'Sign In'}
         </Button>
       </form>
     </AuthCard>

@@ -1,15 +1,18 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useUserMode } from '@/hooks/useUserMode';
 import { useBuyerTransactions } from '@/lib/hooks/useBuyerTransactions';
 import { Button } from '@/components/ui/button';
-import { Shield, ShoppingBag, CheckCircle2, DollarSign, ArrowRight } from 'lucide-react';
+import { ModeSwitcher } from '@/components/common/mode-switcher';
+import { Shield, ShoppingBag, CheckCircle2, DollarSign, ArrowRight, Store, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export default function BuyerDashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { mode, changeMode, canSell, hasBothModes } = useUserMode();
   const { data: transactions, isLoading: transactionsLoading } =
     useBuyerTransactions();
 
@@ -58,12 +61,46 @@ export default function BuyerDashboardPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {user?.full_name}!
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your purchases and track your transactions
-          </p>
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Welcome back, {user?.full_name}!
+              </h1>
+              <p className="text-muted-foreground">
+                {mode === 'buyer' 
+                  ? 'Manage your purchases and track your transactions'
+                  : 'Manage your listings and track your sales'}
+              </p>
+            </div>
+            {hasBothModes && (
+              <ModeSwitcher
+                currentMode="both"
+                onModeChange={changeMode}
+              />
+            )}
+          </div>
+          
+          {/* Quick Switch Actions */}
+          {hasBothModes && (
+            <div className="flex gap-3 flex-wrap">
+              {mode === 'buyer' && (
+                <Button variant="outline" asChild>
+                  <Link href="/seller/dashboard">
+                    <Store className="h-4 w-4 mr-2" />
+                    Switch to Selling Mode
+                  </Link>
+                </Button>
+              )}
+              {mode === 'seller' && (
+                <Button variant="outline" asChild>
+                  <Link href="/buyer/dashboard">
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Switch to Buying Mode
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -125,6 +162,7 @@ export default function BuyerDashboardPage() {
             <div className="flex flex-wrap gap-4">
               <Button size="lg" asChild>
                 <Link href="/catalog">
+                  <ShoppingBag className="h-4 w-4 mr-2" />
                   Browse Catalog
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
@@ -132,6 +170,22 @@ export default function BuyerDashboardPage() {
               <Button size="lg" variant="outline" asChild>
                 <Link href="/buyer/purchases">View All Purchases</Link>
               </Button>
+              {canSell && (
+                <>
+                  <Button size="lg" variant="outline" asChild>
+                    <Link href="/seller/dashboard">
+                      <Store className="h-4 w-4 mr-2" />
+                      My Listings
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" asChild>
+                    <Link href="/seller/submit">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Submit Listing
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

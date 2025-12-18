@@ -36,16 +36,21 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const { accessToken, setAccessToken, clearAuth } = useAuthStore();
 
-  // Get current user
+  // Check if token exists in localStorage
+  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('access_token');
+
+  // Get current user - only fetch if token exists
   const { data: user, isLoading, error } = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: async () => {
-      const response = await apiClient.get<{ user: User }>('/auth/me');
-      return response.data.user;
+      const response = await apiClient.get<User>('/auth/me');
+      return response.data;
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: true, // Always try to fetch (interceptor handles auth)
+    enabled: hasToken, // Only fetch if token exists
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on mount if data exists
   });
 
   // Logout mutation
