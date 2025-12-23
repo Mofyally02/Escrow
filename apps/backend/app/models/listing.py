@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 from app.models.base import Timestamped
+from app.models.currency import Currency
 
 
 class ListingState(str, enum.Enum):
@@ -21,7 +22,9 @@ class Listing(Timestamped):
     title = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)  # Academic, Article, Translation, etc.
     platform = Column(String(100), nullable=False)  # Upwork, Fiverr, Freelancer, etc.
-    price_usd = Column(Integer, nullable=False)  # Price in USD cents
+    price_usd = Column(Integer, nullable=False)  # Price in USD cents (legacy, for backward compatibility)
+    currency = Column(SQLEnum(Currency, values_callable=lambda x: [e.value for e in x]), default=Currency.KSH, nullable=False, server_default=Currency.KSH.value)  # Listing currency (always KSH)
+    price = Column(Integer, nullable=True)  # Price in KSH cents - nullable for migration
     
     description = Column(Text, nullable=True)
     state = Column(SQLEnum(ListingState, values_callable=lambda x: [e.value for e in x]), default=ListingState.DRAFT, nullable=False, index=True)

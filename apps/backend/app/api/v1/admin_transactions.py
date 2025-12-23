@@ -8,7 +8,7 @@ from app.api.v1.dependencies import get_current_user, require_super_admin
 from app.models.user import User
 from app.models.transaction import TransactionState
 from app.crud import transaction as transaction_crud
-from app.crud import escrow_completion
+from app.payment.crud import escrow_completion
 from app.schemas.transaction import TransactionResponse
 from app.core.events import AuditLogger
 from app.models.audit_log import AuditAction

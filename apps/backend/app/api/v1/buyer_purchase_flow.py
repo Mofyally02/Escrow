@@ -23,9 +23,11 @@ from app.schemas.buyer_purchase_flow import (
 from app.core.events import AuditLogger
 from app.models.audit_log import AuditAction
 from app.utils.request_utils import get_client_ip, get_user_agent
-from app.core.payment import PaystackService
+from app.payment.services.paystack import PaystackService
+from app.models.currency import Currency
 import secrets
 import string
+import re
 
 router = APIRouter()
 
@@ -74,16 +76,89 @@ async def step1_initiate_purchase(
         # Initialize Paystack payment
         listing = listing_crud.get_listing_by_id(db, purchase_data.listing_id)
         paystack_service = PaystackService()
-        payment_response = paystack_service.initialize_payment(
-            email=current_user.email,
-            amount=listing.price_usd,
-            reference=paystack_reference,
-            metadata={
-                "transaction_id": transaction.id,
-                "listing_id": listing.id,
-                "buyer_id": current_user.id
-            }
-        )
+        from app.core.config import settings
+        
+        # Platform uses KSH (Kenyan Shilling) internally
+        listing_currency = Currency.KSH
+        listing_amount = getattr(listing, 'price', listing.price_usd)  # Use new price field or fallback to price_usd
+        
+        # Paystack payment: Use KES (Kenyan Shilling) - same as KSH
+        # KSH and KES are the same currency (Kenyan Shilling), just different codes
+        # KSH = platform code, KES = Paystack code
+        payment_currency_code = "KES"  # Paystack uses "KES" for Kenyan Shilling
+        payment_amount = listing_amount  # No conversion needed - KSH cents = KES cents
+        
+        # Ensure minimum payment amount (at least 1 KES = 100 cents)
+        if payment_amount < 100:
+            payment_amount = 100
+        
+        # Update transaction with currency information
+        transaction.currency = listing_currency  # KSH (platform currency)
+        transaction.amount = listing_amount  # Amount in KSH cents
+        transaction.payment_currency = Currency.KSH  # Payment currency is KSH (KES for Paystack)
+        transaction.payment_amount = payment_amount  # Amount in KES cents (same as KSH cents)
+        # Keep amount_usd for backward compatibility (convert KSH to USD for display)
+        # Using approximate rate: 1 USD = 130 KSH
+        transaction.amount_usd = int(listing_amount / 130)  # Convert KSH cents to USD cents for display
+        
+        db.commit()
+        db.refresh(transaction)
+        
+        # Validate email
+        buyer_email = current_user.email
+        if not buyer_email or not buyer_email.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User email is required for payment. Please update your profile with a valid email address."
+            )
+        
+        # Clean and validate email format
+        buyer_email = buyer_email.strip().lower()
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, buyer_email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email address format. Please update your profile with a valid email address."
+            )
+        
+        # Create callback URL for payment redirect
+        callback_url = f"{settings.FRONTEND_URL}/buyer/purchases/{transaction.id}/payment/callback?reference={paystack_reference}"
+        
+        try:
+            payment_response = paystack_service.initialize_payment(
+                email=buyer_email,
+                amount=payment_amount,  # Amount in smallest unit of payment currency
+                reference=paystack_reference,
+                callback_url=callback_url,
+                currency=payment_currency_code,
+                metadata={
+                    "transaction_id": transaction.id,
+                    "listing_id": listing.id,
+                    "buyer_id": current_user.id,
+                    "listing_currency": listing_currency.value,  # KSH (platform currency)
+                    "listing_amount": listing_amount,  # Amount in KSH cents
+                    "payment_currency": payment_currency_code,  # KES (Paystack code for KSH)
+                    "payment_amount": payment_amount  # Amount in KES cents (same as KSH cents)
+                }
+            )
+        except ValueError as e:
+            error_message = str(e)
+            # Check if it's an email-related error from Paystack
+            if "email" in error_message.lower() or "invalid" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Payment initialization failed: {error_message}. Please ensure your email address is valid and try again."
+                )
+            # Check if it's a currency-related error
+            if "currency" in error_message.lower() or "not supported" in error_message.lower() or "unsupported_currency" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Payment initialization failed: {error_message}. The payment system is configured to use KES (Kenyan Shilling). Please ensure your Paystack account has KES enabled in Settings → Payment Preferences, or contact support."
+                )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Payment initialization failed: {error_message}"
+            )
         
         # Extract authorization URL from Paystack response
         authorization_url = payment_response.get("data", {}).get("authorization_url")
@@ -558,7 +633,7 @@ async def step6_request_funds_release(
         )
         
         # Calculate commission and payout
-        from app.core.payout import PayoutService
+        from app.payment.services.payout import PayoutService
         commission_usd, payout_amount_usd = PayoutService.calculate_commission(transaction.amount_usd)
         
         # TODO: Process actual payout via Paystack transfer

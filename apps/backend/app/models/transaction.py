@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, ForeignKey, Numeric, Enum as SQLEnum, St
 from sqlalchemy.orm import relationship
 import enum
 from app.models.base import Timestamped
+from app.models.currency import Currency
 
 
 class TransactionState(str, enum.Enum):
@@ -43,8 +44,14 @@ class Transaction(Timestamped):
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     seller_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
-    # Amount in USD cents
+    # Amount in USD cents (legacy, for backward compatibility)
     amount_usd = Column(Integer, nullable=False)
+    # Currency support - Only KSH (Kenyan Shilling)
+    currency = Column(SQLEnum(Currency, values_callable=lambda x: [e.value for e in x]), default=Currency.KSH, nullable=False, server_default=Currency.KSH.value)  # Transaction currency (always KSH)
+    amount = Column(Integer, nullable=True)  # Amount in KSH cents - nullable for migration
+    payment_currency = Column(SQLEnum(Currency, values_callable=lambda x: [e.value for e in x]), default=Currency.KSH, nullable=False, server_default=Currency.KSH.value)  # Payment currency (always KSH)
+    payment_amount = Column(Integer, nullable=True)  # Amount in KSH cents
+    
     state = Column(SQLEnum(TransactionState, values_callable=lambda x: [e.value for e in x]), default=TransactionState.PURCHASE_INITIATED, nullable=False, index=True)
     
     # Paystack details

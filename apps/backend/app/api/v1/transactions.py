@@ -15,7 +15,7 @@ from app.crud import buyer_confirmation as confirmation_crud
 from app.schemas.transaction import TransactionCreate, TransactionResponse, TransactionDetailResponse
 from app.schemas.buyer_confirmation import BuyerConfirmationCreate, BuyerConfirmationResponse
 from app.models.buyer_confirmation import ConfirmationStage
-from app.core.payment import PaystackService
+from app.payment.services.paystack import PaystackService
 from app.core.events import AuditLogger
 from app.core.config import settings
 from app.utils.request_utils import get_client_ip
@@ -91,15 +91,35 @@ async def initiate_purchase(
     
     # Initialize Paystack payment
     try:
+        from app.core.config import settings
+        from app.models.currency import Currency
         paystack_service = PaystackService()
+        
+        # Platform uses KSH (Kenyan Shilling) internally
+        # Paystack uses KES (same currency, different code)
+        listing_currency = getattr(listing, 'currency', Currency.KSH)
+        listing_amount = getattr(listing, 'price', listing.price_usd)
+        
+        # KSH and KES are the same currency - no conversion needed
+        payment_amount = listing_amount  # KSH cents = KES cents
+        
+        # Ensure minimum payment amount (at least 1 KES = 100 cents)
+        if payment_amount < 100:
+            payment_amount = 100
+        
         payment_response = paystack_service.initialize_payment(
             email=current_user.email,
-            amount=listing.price_usd,  # Amount in cents
+            amount=payment_amount,  # Amount in KES cents
             reference=paystack_reference,
+            currency="KES",  # Paystack code for Kenyan Shilling
             metadata={
                 "transaction_id": transaction.id,
                 "listing_id": listing.id,
-                "buyer_id": current_user.id
+                "buyer_id": current_user.id,
+                "listing_currency": listing_currency.value if hasattr(listing_currency, 'value') else 'KSH',
+                "listing_amount": listing_amount,
+                "payment_currency": "KES",  # Paystack code for KSH
+                "payment_amount": payment_amount  # Amount in KES cents
             }
         )
         
@@ -229,9 +249,9 @@ async def confirm_access(
         )
     
     # Import payout service
-    from app.core.payout import PayoutService
-    from app.core.payment import PaystackService
-    from app.crud import escrow_completion
+    from app.payment.services.payout import PayoutService
+    from app.payment.services.paystack import PaystackService
+    from app.payment.crud import escrow_completion
     
     try:
         # Calculate commission and payout

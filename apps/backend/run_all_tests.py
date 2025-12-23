@@ -367,7 +367,7 @@ def test_payout():
     tests = []
     
     try:
-        from app.core.payout import PayoutService
+        from app.payment.services.payout import PayoutService
         
         # Test commission calculation
         amount = 10000  # $100.00 in cents

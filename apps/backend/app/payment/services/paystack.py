@@ -27,8 +27,10 @@ class PaystackService:
     def initialize_payment(
         self,
         email: str,
-        amount: int,  # Amount in kobo (Nigerian Naira) or cents
+        amount: int,  # Amount in smallest currency unit (cents for KES/USD, kobo for NGN)
         reference: str,
+        callback_url: Optional[str] = None,
+        currency: str = "KES",  # Currency code (KES for Kenya, NGN for Nigeria, USD if enabled)
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -37,24 +39,81 @@ class PaystackService:
         
         Args:
             email: Buyer's email
-            amount: Amount in kobo/cents
+            amount: Amount in smallest currency unit (KES cents, NGN kobo, USD cents)
             reference: Unique transaction reference
+            callback_url: Optional callback URL for redirect after payment
+            currency: Currency code (KES for Kenya-based accounts, NGN for Nigeria, USD if enabled)
             metadata: Additional metadata
             
         Returns:
             Payment initialization response with authorization_url
+            
+        Note:
+            - KES (Kenyan Shilling) is the default for Kenya-based Paystack accounts
+            - Amount must be in smallest unit: KES cents, NGN kobo, USD cents
+            - Currency must match what's enabled in your Paystack account settings
         """
         try:
+            # Validate email before sending
+            if not email or not email.strip():
+                raise ValueError("Email is required")
+            
+            # Clean email
+            email = email.strip().lower()
+            
             url = f"{self.BASE_URL}/transaction/initialize"
             payload = {
                 "email": email,
                 "amount": amount,
                 "reference": reference,
+                "currency": currency,  # Add currency parameter
                 "metadata": metadata or {}
             }
+            if callback_url:
+                payload["callback_url"] = callback_url
+            
             response = requests.post(url, json=payload, headers=self.headers)
+            
+            # Check for errors in response
+            if not response.ok:
+                try:
+                    error_data = response.json() if response.content else {}
+                    error_message = error_data.get("message", f"HTTP {response.status_code}: {response.reason}")
+                    # Log full error for debugging
+                    if settings.DEBUG:
+                        print(f"Paystack Error Response: {error_data}")
+                except:
+                    error_message = f"HTTP {response.status_code}: {response.reason}"
+                
+                # Provide more specific error messages
+                if "email" in error_message.lower() or "invalid" in error_message.lower():
+                    raise ValueError(f"Invalid email address: {error_message}")
+                if "currency" in error_message.lower() or "not supported" in error_message.lower():
+                    raise ValueError(f"Currency not supported: {error_message}. Please contact support.")
+                raise ValueError(f"Payment initialization failed: {error_message}")
+            
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            # Check if Paystack returned an error in the response data
+            if not result.get("status", False):
+                error_message = result.get("message", "Unknown error from Paystack")
+                if "email" in error_message.lower():
+                    raise ValueError(f"Invalid email address: {error_message}")
+                if "currency" in error_message.lower() or "not supported" in error_message.lower():
+                    raise ValueError(f"Currency not supported: {error_message}. Please contact support.")
+                raise ValueError(f"Payment initialization failed: {error_message}")
+            
+            return result
+        except requests.exceptions.RequestException as e:
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    error_message = error_data.get("message", str(e))
+                except:
+                    error_message = str(e)
+                raise ValueError(f"Payment initialization failed: {error_message}")
+            raise ValueError(f"Failed to initialize payment: {str(e)}")
         except Exception as e:
             raise ValueError(f"Failed to initialize payment: {str(e)}")
     

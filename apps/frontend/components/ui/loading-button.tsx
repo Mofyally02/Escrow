@@ -17,12 +17,15 @@ export interface LoadingButtonProps extends ButtonProps {
  */
 export const LoadingButton = forwardRef<HTMLButtonElement, LoadingButtonProps>(
   ({ isLoading, loadingText, children, disabled, className, ...props }, ref) => {
+    // Filter out any 'loading' prop that might be passed (for backward compatibility)
+    const { loading, ...restProps } = props as any;
+    
     return (
       <Button
         ref={ref}
         disabled={disabled || isLoading}
         className={cn('relative', className)}
-        {...props}
+        {...restProps}
       >
         {isLoading && (
           <Loader2 className="mr-2 h-4 w-4 animate-spin absolute left-3" />

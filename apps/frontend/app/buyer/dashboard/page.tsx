@@ -7,14 +7,20 @@ import { Button } from '@/components/ui/button';
 import { ModeSwitcher } from '@/components/common/mode-switcher';
 import { Shield, ShoppingBag, CheckCircle2, DollarSign, ArrowRight, Store, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export default function BuyerDashboardPage() {
+  const [mounted, setMounted] = useState(false);
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { mode, changeMode, canSell, hasBothModes } = useUserMode();
   const { data: transactions, isLoading: transactionsLoading } =
     useBuyerTransactions();
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const stats = useMemo(() => {
     if (!transactions) return null;
@@ -35,7 +41,8 @@ export default function BuyerDashboardPage() {
     };
   }, [transactions]);
 
-  if (authLoading || transactionsLoading) {
+  // Show loading state only after mount to prevent hydration mismatch
+  if (!mounted || authLoading || transactionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -116,3 +116,36 @@ def verify_phone(db: Session, user: User) -> User:
     db.commit()
     db.refresh(user)
     return user
+
+
+def suspend_user(db: Session, user: User) -> User:
+    """Suspend user account"""
+    user.is_active = False
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def unsuspend_user(db: Session, user: User) -> User:
+    """Unsuspend user account"""
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user(db: Session, user: User) -> bool:
+    """
+    Delete user account and all associated data.
+    Returns True if successful, False otherwise.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        db.delete(user)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting user {user.id}: {str(e)}")
+        return False

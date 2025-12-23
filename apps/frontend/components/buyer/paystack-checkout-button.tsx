@@ -10,6 +10,8 @@ interface PaystackCheckoutButtonProps {
   transactionId: number;
   amount: number; // in cents
   email: string;
+  paystackReference?: string | null; // Optional: pass reference directly to avoid extra API call
+  authorizationUrl?: string | null; // Optional: pass authorization URL directly
   onSuccess?: (reference: string) => void;
   className?: string;
 }
@@ -24,11 +26,14 @@ export function PaystackCheckoutButton({
   transactionId,
   amount,
   email,
+  paystackReference,
+  authorizationUrl,
   onSuccess,
   className,
 }: PaystackCheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [paystackLoaded, setPaystackLoaded] = useState(false);
+  const [reference, setReference] = useState<string | null>(paystackReference || null);
 
   // Load Paystack script
   useEffect(() => {
@@ -50,14 +55,32 @@ export function PaystackCheckoutButton({
   const handlePayment = async () => {
     setIsLoading(true);
     try {
-      // Get transaction details to get Paystack reference
-      const transactionResponse = await apiClient.get<{ transaction: any }>(
-        `/transactions/${transactionId}`
-      );
-      const transaction = transactionResponse.data.transaction;
+      let paystackRef = reference;
 
-      if (!transaction.paystack_reference) {
-        throw new Error('Payment reference not found');
+      // If reference not provided, fetch transaction to get it
+      if (!paystackRef) {
+        try {
+          const transactionResponse = await apiClient.get<any>(
+            `/transactions/${transactionId}`
+          );
+          // Backend returns TransactionDetailResponse directly, not wrapped
+          const transaction = transactionResponse.data;
+          
+          if (!transaction || !transaction.paystack_reference) {
+            throw new Error('Payment reference not found. Please try again.');
+          }
+          
+          paystackRef = transaction.paystack_reference;
+          setReference(paystackRef);
+        } catch (fetchError: any) {
+          setIsLoading(false);
+          const message =
+            fetchError.response?.data?.detail || 
+            fetchError.message || 
+            'Failed to load transaction details';
+          toast.error(message);
+          return;
+        }
       }
 
       const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
@@ -66,18 +89,39 @@ export function PaystackCheckoutButton({
         throw new Error('Paystack public key not configured');
       }
 
+      // If authorization URL is provided, open in new tab
+      if (authorizationUrl) {
+        const newWindow = window.open(authorizationUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+          toast.error('Please allow popups to complete payment');
+          setIsLoading(false);
+          return;
+        }
+        // Monitor the new window for payment completion
+        // The callback URL will handle the payment confirmation
+        setIsLoading(false);
+        toast.info('Payment window opened. Complete payment in the new tab.');
+        return;
+      }
+
       // Open Paystack popup
       if (window.PaystackPop) {
         const handler = window.PaystackPop.setup({
           key: paystackKey,
           email,
           amount: amount, // Amount in kobo (Paystack expects smallest currency unit)
-          ref: transaction.paystack_reference,
-          callback: async (response: any) => {
+          ref: paystackRef,
+          callback: (response: any) => {
             // Payment successful - pass reference to parent
+            // Note: Paystack callback must be synchronous
             setIsLoading(false);
-            if (response.reference) {
-              onSuccess?.(response.reference);
+            if (response && response.reference) {
+              // Call onSuccess if provided
+              if (onSuccess && typeof onSuccess === 'function') {
+                onSuccess(response.reference);
+              } else {
+                toast.success('Payment successful! Funds held in escrow.');
+              }
             } else {
               toast.success('Payment successful! Funds held in escrow.');
             }

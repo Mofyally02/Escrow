@@ -78,6 +78,7 @@ export interface TransactionDetail extends Omit<Transaction, 'contract' | 'listi
     signed_by_name: string | null;
     signed_at: string | null;
   } | null;
+  payment_authorization_url?: string | null; // Paystack authorization URL
 }
 
 export interface TransactionCreate {

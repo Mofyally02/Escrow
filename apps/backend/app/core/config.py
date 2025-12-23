@@ -82,8 +82,26 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     
     # Paystack
-    PAYSTACK_SECRET_KEY: str = ""
-    PAYSTACK_PUBLIC_KEY: str = ""
+    PAYSTACK_SECRET_KEY: str = Field(
+        default="sk_test_7e69c21ff37986c88adbc67b0534bd6c6b2f909c",
+        env="PAYSTACK_SECRET_KEY",
+        description="Paystack secret key (test or live)"
+    )
+    PAYSTACK_PUBLIC_KEY: str = Field(
+        default="pk_test_76ff734a50e089b9787e2f4194d59e0bec277e15",
+        env="PAYSTACK_PUBLIC_KEY",
+        description="Paystack public key (test or live)"
+    )
+    PAYSTACK_CURRENCY: str = Field(
+        default="KES",  # Kenyan Shilling - Paystack Kenya account default currency
+        env="PAYSTACK_CURRENCY",
+        description="Paystack currency code - KES (Kenyan Shilling). KSH and KES are the same currency."
+    )
+    FRONTEND_URL: str = Field(
+        default="http://localhost:3000",
+        env="FRONTEND_URL",
+        description="Frontend URL for callback redirects"
+    )
     
     # M-Pesa (for future)
     MPESA_CONSUMER_KEY: str = ""

@@ -270,7 +270,8 @@ export function OwnershipAgreementSigner({
           className="w-full"
           disabled={!canSubmit}
           size="lg"
-          loading={signOwnershipAgreement.isPending}
+          isLoading={signOwnershipAgreement.isPending}
+          loadingText="Signing Agreement..."
         >
           <Shield className="h-4 w-4 mr-2" />
           Sign Ownership Agreement

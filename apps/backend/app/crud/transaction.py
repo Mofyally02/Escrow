@@ -29,7 +29,8 @@ def get_transactions_by_buyer(
     limit: int = 100
 ) -> List[Transaction]:
     """Get transactions by buyer with optional state filter"""
-    query = db.query(Transaction).filter(Transaction.buyer_id == buyer_id)
+    from sqlalchemy.orm import joinedload
+    query = db.query(Transaction).options(joinedload(Transaction.listing)).filter(Transaction.buyer_id == buyer_id)
     if state:
         query = query.filter(Transaction.state == state)
     return query.order_by(Transaction.created_at.desc()).offset(skip).limit(limit).all()

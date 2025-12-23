@@ -117,8 +117,8 @@ export function ListingDetailHeader({ listing }: ListingDetailHeaderProps) {
           <LoadingButton
             size="lg"
             onClick={handleBuyNow}
-            loading={initiatePurchase.isPending}
-            disabled={initiatePurchase.isPending}
+            isLoading={initiatePurchase.isPending}
+            loadingText="Initiating Purchase..."
           >
             Buy Now
           </LoadingButton>

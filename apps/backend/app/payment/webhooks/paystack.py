@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import json
 from app.core.database import get_db
-from app.core.payment import PaystackService
+from app.payment.services.paystack import PaystackService
 from app.core.events import AuditLogger
 from app.models.audit_log import AuditAction
 from app.crud import transaction as transaction_crud

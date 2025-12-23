@@ -36,6 +36,8 @@ export interface AdminUser {
   role: 'buyer' | 'seller' | 'admin' | 'super_admin';
   is_active: boolean;
   is_verified: boolean;
+  is_email_verified: boolean;
+  is_phone_verified: boolean;
   created_at: string;
   listings_count?: number;
   transactions_count?: number;

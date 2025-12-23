@@ -258,25 +258,9 @@ export function useForceRefund() {
   });
 }
 
-export function useAdminUsers() {
-  return useQuery({
-    queryKey: queryKeys.admin.users,
-    queryFn: async () => {
-      // Backend may not have users endpoint yet
-      // Return empty array for now
-      try {
-        const response = await apiClient.get<{ users: AdminUser[] }>(
-          '/admin/users'
-        );
-        return response.data.users;
-      } catch (error) {
-        // Endpoint may not exist yet, return empty array
-        return [];
-      }
-    },
-    staleTime: 1 * 60 * 1000, // 1 minute
-  });
-}
+// useAdminUsers has been moved to useAdminUsers.ts
+// This export is kept for backward compatibility but will be removed
+export { useAdminUsers } from './useAdminUsers';
 
 export function useAdminAnalytics() {
   return useQuery({

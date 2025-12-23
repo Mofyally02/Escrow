@@ -165,7 +165,7 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* STEP 2: Payment Section */}
-          {showPayment && (
+          {showPayment && transaction && (
             <div className="bg-card border rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Complete Payment</h2>
               <p className="text-muted-foreground mb-4">
@@ -176,6 +176,8 @@ export default function TransactionDetailPage() {
                 transactionId={transactionId}
                 amount={transaction.amount_usd}
                 email={user?.email || ''}
+                paystackReference={transaction.paystack_reference || null}
+                authorizationUrl={transaction.payment_authorization_url || null}
                 onSuccess={(reference) => handlePaymentSuccess(reference)}
               />
             </div>
