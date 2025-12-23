@@ -12,7 +12,9 @@ from app.crud import listing as listing_crud
 from app.schemas.listing import (
     ListingResponse,
     ListingDetailResponse,
-    ListingStateChangeRequest
+    ListingStateChangeRequest,
+    SellerInfo,
+    ProofFileResponse
 )
 from app.core.events import AuditLogger
 from app.core.config import settings
@@ -33,7 +35,12 @@ async def get_listings_for_review(
     """
     Get listings for admin review.
     Can filter by state.
+    Default shows all listings, but typically filter by UNDER_REVIEW for pending approvals.
     """
+    # Default to UNDER_REVIEW if no state specified (most common use case)
+    if state is None:
+        state = ListingState.UNDER_REVIEW
+    
     listings = listing_crud.get_listings_for_admin(
         db=db,
         state=state,
@@ -41,12 +48,74 @@ async def get_listings_for_review(
         limit=limit
     )
     
-    # Add proof count to each listing
+    # Batch load proofs for all listings to avoid N+1 queries
+    listing_ids = [listing.id for listing in listings]
+    all_proofs = {}
+    if listing_ids:
+        from app.models.listing_proof import ListingProof
+        proofs_query = db.query(ListingProof).filter(
+            ListingProof.listing_id.in_(listing_ids)
+        ).all()
+        for proof in proofs_query:
+            if proof.listing_id not in all_proofs:
+                all_proofs[proof.listing_id] = []
+            all_proofs[proof.listing_id].append(proof)
+    
+    # Add proof count and seller info to each listing
     result = []
     for listing in listings:
-        proofs = listing_crud.get_listing_proofs(db, listing.id)
+        proofs = all_proofs.get(listing.id, [])
         detail = ListingDetailResponse.model_validate(listing)
         detail.proof_count = len(proofs)
+        # Include seller info if available
+        if listing.seller:
+            detail.seller = SellerInfo.model_validate(listing.seller)
+        result.append(detail)
+    
+    return result
+
+
+@router.get("/pending", response_model=List[ListingDetailResponse])
+async def get_pending_listings(
+    request: Request,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Get listings pending admin approval (UNDER_REVIEW state).
+    Convenience endpoint for admin dashboard.
+    """
+    listings = listing_crud.get_listings_for_admin(
+        db=db,
+        state=ListingState.UNDER_REVIEW,
+        skip=skip,
+        limit=limit
+    )
+    
+    # Batch load proofs for all listings to avoid N+1 queries
+    listing_ids = [listing.id for listing in listings]
+    all_proofs = {}
+    if listing_ids:
+        from app.models.listing_proof import ListingProof
+        proofs_query = db.query(ListingProof).filter(
+            ListingProof.listing_id.in_(listing_ids)
+        ).all()
+        for proof in proofs_query:
+            if proof.listing_id not in all_proofs:
+                all_proofs[proof.listing_id] = []
+            all_proofs[proof.listing_id].append(proof)
+    
+    # Add proof count and seller info to each listing
+    result = []
+    for listing in listings:
+        proofs = all_proofs.get(listing.id, [])
+        detail = ListingDetailResponse.model_validate(listing)
+        detail.proof_count = len(proofs)
+        # Include seller info if available
+        if listing.seller:
+            detail.seller = SellerInfo.model_validate(listing.seller)
         result.append(detail)
     
     return result
@@ -72,11 +141,17 @@ async def get_listing_details(
     ip_address = get_client_ip(request)
     AuditLogger.log_admin_review_started(db, current_user.id, listing_id, ip_address)
     
-    # Get proof count
+    # Get proofs and seller info
     proofs = listing_crud.get_listing_proofs(db, listing_id)
     
     detail = ListingDetailResponse.model_validate(listing)
     detail.proof_count = len(proofs)
+    # Include seller info if available
+    if listing.seller:
+        detail.seller = SellerInfo.model_validate(listing.seller)
+    # Include proofs for detail view
+    if proofs:
+        detail.proofs = [ProofFileResponse.model_validate(proof) for proof in proofs]
     return detail
 
 
@@ -120,6 +195,9 @@ async def approve_listing(
             ListingState.APPROVED.value,
             ip_address
         )
+        
+        # Refresh to get updated state
+        db.refresh(approved_listing)
         
         return approved_listing
     except ValueError as e:

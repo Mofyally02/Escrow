@@ -3,14 +3,16 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AuthCard } from './auth-card';
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
+import { queryKeys } from '@/lib/query-keys';
 import apiClient from '@/lib/api';
 export function LoginForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   
   const {
     register,
@@ -36,6 +38,13 @@ export function LoginForm() {
       if (data?.refresh_token && typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', data.refresh_token);
       }
+
+      // Invalidate user query to force refetch with new token
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+      
+      // #region agent log
+      console.log('[DEBUG] Login successful, invalidated user query cache');
+      // #endregion
 
       toast.success('Login successful! Redirecting...');
       // Use replace to prevent back navigation and avoid refresh loops

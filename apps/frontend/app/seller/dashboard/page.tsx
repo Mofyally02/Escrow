@@ -1,9 +1,11 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useUserMode } from '@/hooks/useUserMode';
 import { useSellerListings } from '@/lib/hooks/useSellerListings';
 import { Button } from '@/components/ui/button';
-import { Shield, FileText, Clock, CheckCircle2, ShoppingBag, DollarSign, Plus, ArrowRight } from 'lucide-react';
+import { ModeSwitcher } from '@/components/common/mode-switcher';
+import { Shield, FileText, Clock, CheckCircle2, ShoppingBag, DollarSign, Plus, ArrowRight, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -12,6 +14,7 @@ import { ListingCard } from '@/components/seller/listing-card';
 
 export default function SellerDashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { mode, hasBothModes } = useUserMode();
   const { data: listings, isLoading: listingsLoading } = useSellerListings();
 
   const stats = useMemo(() => {
@@ -60,12 +63,31 @@ export default function SellerDashboardPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {user?.full_name}!
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your listings and track your earnings
-          </p>
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Welcome back, {user?.full_name}!
+              </h1>
+              <p className="text-muted-foreground">
+                Manage your listings and track your earnings
+              </p>
+            </div>
+            {hasBothModes && (
+              <ModeSwitcher />
+            )}
+          </div>
+          
+          {/* Quick Switch Actions */}
+          {hasBothModes && mode === 'seller' && (
+            <div className="flex gap-3 flex-wrap">
+              <Button variant="outline" asChild>
+                <Link href="/buyer/dashboard">
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Switch to Buying Mode
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -146,6 +168,18 @@ export default function SellerDashboardPage() {
               <Button size="lg" variant="outline" asChild>
                 <Link href="/seller/listings">
                   View All Listings
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/buyer/dashboard">
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  My Purchases
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/catalog">
+                  Browse Catalog
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
               </Button>

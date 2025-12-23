@@ -74,7 +74,7 @@ def create_transaction(
         buyer_id=buyer_id,
         seller_id=listing.seller_id,
         amount_usd=amount_usd,
-        state=TransactionState.PENDING,
+        state=TransactionState.PURCHASE_INITIATED,
         paystack_reference=paystack_reference
     )
     
@@ -117,10 +117,10 @@ def update_transaction_state(
         listing = db.query(Listing).filter(Listing.id == transaction.listing_id).first()
         if listing:
             listing.state = ListingState.RESERVED
-    elif new_state == TransactionState.CONTRACT_SIGNED:
-        transaction.contract_signed_at = now
-    elif new_state == TransactionState.CREDENTIALS_RELEASED:
-        transaction.credentials_released_at = now
+    elif new_state == TransactionState.OWNERSHIP_AGREEMENT_SIGNED:
+        transaction.ownership_agreement_signed_at = now
+    elif new_state == TransactionState.TEMPORARY_ACCESS_GRANTED:
+        transaction.temporary_access_granted_at = now
     elif new_state == TransactionState.COMPLETED:
         transaction.completed_at = now
     elif new_state == TransactionState.REFUNDED:

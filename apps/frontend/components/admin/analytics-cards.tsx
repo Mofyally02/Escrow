@@ -19,7 +19,7 @@ interface AnalyticsCardsProps {
 export function AnalyticsCards({ data, isLoading }: AnalyticsCardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="bg-card border rounded-lg p-6 animate-pulse">
             <div className="h-4 bg-muted rounded w-1/2 mb-2" />
@@ -31,7 +31,7 @@ export function AnalyticsCards({ data, isLoading }: AnalyticsCardsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div className="bg-card border rounded-lg p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -40,8 +40,8 @@ export function AnalyticsCards({ data, isLoading }: AnalyticsCardsProps) {
             </p>
             <p className="text-3xl font-bold">{data.pending_listings || 0}</p>
           </div>
-          <div className="rounded-full bg-yellow-100 p-3">
-            <Clock className="h-6 w-6 text-yellow-600" />
+          <div className="rounded-full bg-yellow-100 dark:bg-yellow-900/20 p-3">
+            <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
           </div>
         </div>
       </div>
@@ -56,8 +56,8 @@ export function AnalyticsCards({ data, isLoading }: AnalyticsCardsProps) {
               {data.active_escrows || 0}
             </p>
           </div>
-          <div className="rounded-full bg-blue-100 p-3">
-            <ShoppingBag className="h-6 w-6 text-blue-600" />
+          <div className="rounded-full bg-blue-100 dark:bg-blue-900/20 p-3">
+            <ShoppingBag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
       </div>
@@ -72,8 +72,8 @@ export function AnalyticsCards({ data, isLoading }: AnalyticsCardsProps) {
               {formatPrice(data.total_revenue || 0)}
             </p>
           </div>
-          <div className="rounded-full bg-green-100 p-3">
-            <DollarSign className="h-6 w-6 text-green-600" />
+          <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-3">
+            <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
           </div>
         </div>
       </div>
@@ -88,8 +88,8 @@ export function AnalyticsCards({ data, isLoading }: AnalyticsCardsProps) {
               {((data.dispute_rate || 0) * 100).toFixed(1)}%
             </p>
           </div>
-          <div className="rounded-full bg-red-100 p-3">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-3">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
         </div>
       </div>

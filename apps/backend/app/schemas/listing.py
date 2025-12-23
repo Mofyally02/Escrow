@@ -2,9 +2,12 @@
 Pydantic schemas for listing operations.
 """
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from app.models.listing import ListingState
+
+if TYPE_CHECKING:
+    from app.schemas.listing import ProofFileResponse
 
 
 class ListingBase(BaseModel):
@@ -28,12 +31,24 @@ class ListingCreate(ListingBase):
     two_fa_secret: Optional[str] = None
     # User password for encryption key derivation
     user_password: str = Field(..., min_length=8, description="User's password for encryption")
+    # Seller agreement acknowledgment
+    seller_agreement_acknowledged: bool = Field(
+        ..., 
+        description="Seller must acknowledge that Escrow administrators will never receive or view account passwords. Verification is performed using provided proof materials only."
+    )
     
     @validator('price_usd')
     def validate_price(cls, v):
         """Price must be at least $10 (1000 cents)"""
         if v < 1000:
             raise ValueError("Price must be at least $10.00")
+        return v
+    
+    @validator('seller_agreement_acknowledged')
+    def validate_seller_agreement(cls, v):
+        """Seller must acknowledge the agreement"""
+        if not v:
+            raise ValueError("You must acknowledge that Escrow administrators will never receive or view account passwords. Verification is performed using provided proof materials only.")
         return v
 
 
@@ -69,13 +84,25 @@ class ListingResponse(BaseModel):
         from_attributes = True
 
 
+class SellerInfo(BaseModel):
+    """Seller information for admin views"""
+    id: int
+    full_name: Optional[str]
+    email: str
+    
+    class Config:
+        from_attributes = True
+
+
 class ListingDetailResponse(ListingResponse):
     """Schema for detailed listing view (includes admin fields)"""
-    admin_notes: Optional[str]
-    rejection_reason: Optional[str]
-    reviewed_by: Optional[int]
-    reviewed_at: Optional[datetime]
+    admin_notes: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    reviewed_by: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
     proof_count: int = 0
+    seller: Optional[SellerInfo] = None  # Seller info for admin views
+    proofs: Optional[List['ProofFileResponse']] = None  # Proof files for detail view
     
     class Config:
         from_attributes = True

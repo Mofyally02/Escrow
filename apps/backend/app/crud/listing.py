@@ -13,8 +13,12 @@ from datetime import datetime
 
 
 def get_listing_by_id(db: Session, listing_id: int) -> Optional[Listing]:
-    """Get listing by ID"""
-    return db.query(Listing).filter(Listing.id == listing_id).first()
+    """Get listing by ID with relationships loaded"""
+    from sqlalchemy.orm import joinedload
+    return db.query(Listing).options(
+        joinedload(Listing.seller),
+        joinedload(Listing.proofs)
+    ).filter(Listing.id == listing_id).first()
 
 
 def get_listings_by_seller(
@@ -37,8 +41,9 @@ def get_listings_for_admin(
     skip: int = 0,
     limit: int = 100
 ) -> List[Listing]:
-    """Get listings for admin review"""
-    query = db.query(Listing)
+    """Get listings for admin review with seller relationship loaded"""
+    from sqlalchemy.orm import joinedload
+    query = db.query(Listing).options(joinedload(Listing.seller))
     if state:
         query = query.filter(Listing.state == state)
     return query.order_by(Listing.created_at.desc()).offset(skip).limit(limit).all()
@@ -48,7 +53,8 @@ def create_listing(
     db: Session,
     seller_id: int,
     listing_data: ListingCreate,
-    user_password: str
+    user_password: str,
+    initial_state: ListingState = ListingState.DRAFT
 ) -> Listing:
     """
     Create a new listing with encrypted credentials.
@@ -58,6 +64,7 @@ def create_listing(
         seller_id: ID of the seller
         listing_data: Listing creation data
         user_password: User's password for encryption key derivation
+        initial_state: Initial state of the listing (default: DRAFT)
         
     Returns:
         Created Listing object
@@ -73,7 +80,7 @@ def create_listing(
         monthly_earnings=listing_data.monthly_earnings,
         account_age_months=listing_data.account_age_months,
         rating=listing_data.rating,
-        state=ListingState.DRAFT
+        state=initial_state
     )
     
     db.add(listing)

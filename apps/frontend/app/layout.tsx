@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { Navbar } from '@/components/layout/navbar';
+import { Footer } from '@/components/layout/footer';
 import { ErrorBoundaryWrapper } from '@/components/error-boundary-wrapper';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { SkipLink } from '@/components/accessibility/skip-link';
@@ -65,12 +66,14 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'Escrow',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
+};
+
+// Viewport and themeColor must be exported separately in Next.js 15
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
@@ -104,6 +107,7 @@ export default function RootLayout({
                 <main id="main-content" className="flex-1 pb-16 md:pb-0" tabIndex={-1}>
                   {children}
                 </main>
+                <Footer />
                 <MobileBottomNav />
               </div>
               <Toaster />

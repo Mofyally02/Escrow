@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
+import { extractErrorMessage } from '@/lib/utils/error-handler';
 import type {
   Listing,
   ListingCreate,
@@ -26,17 +27,24 @@ export function useSellerListings() {
   });
 }
 
-export function useSellerListing(id: number) {
+export function useSellerListing(id: number | string | null) {
+  // Ensure id is a valid number
+  const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+  
   return useQuery({
-    queryKey: queryKeys.listings.detail(id),
+    queryKey: queryKeys.listings.detail(numericId || 0),
     queryFn: async () => {
+      // Ensure we're passing a number, not a string
+      if (!numericId || isNaN(numericId)) {
+        throw new Error('Invalid listing ID');
+      }
       const response = await apiClient.get<Listing>(
-        `/listings/${id}`
+        `/listings/${numericId}`
       );
       // Backend returns Listing directly
       return response.data;
     },
-    enabled: !!id && !isNaN(id),
+    enabled: !!numericId && !isNaN(numericId) && numericId > 0,
     staleTime: 30 * 1000, // 30 seconds
   });
 }
@@ -54,19 +62,53 @@ export function useCreateListing() {
       // Backend returns Listing directly
       return response.data;
     },
+    // Optimistic update for instant UI feedback
+    onMutate: async (newListing) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.listings.bySeller(0) });
+      
+      // Snapshot previous value
+      const previousListings = queryClient.getQueryData<Listing[]>(
+        queryKeys.listings.bySeller(0)
+      );
+      
+      // Optimistically update
+      if (previousListings) {
+        const optimisticListing: Listing = {
+          id: Date.now(), // Temporary ID
+          ...newListing,
+          state: 'draft' as any,
+          seller_id: 0,
+          created_at: new Date().toISOString(),
+          updated_at: null,
+        };
+        queryClient.setQueryData<Listing[]>(
+          queryKeys.listings.bySeller(0),
+          [...previousListings, optimisticListing]
+        );
+      }
+      
+      return { previousListings };
+    },
     onSuccess: (listing) => {
+      // Invalidate to get fresh data
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
       queryClient.invalidateQueries({
         queryKey: queryKeys.listings.bySeller(0),
       });
-      // Invalidate catalog queries so approved listings appear immediately
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.all() });
       toast.success('Listing created successfully!');
       router.push(`/seller/listings/${listing.id}`);
     },
-    onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || 'Failed to create listing';
+    onError: (error: any, _variables, context) => {
+      // Rollback on error
+      if (context?.previousListings) {
+        queryClient.setQueryData(
+          queryKeys.listings.bySeller(0),
+          context.previousListings
+        );
+      }
+      const message = extractErrorMessage(error) || 'Failed to create listing';
       toast.error(message);
     },
   });
@@ -102,8 +144,7 @@ export function useUpdateListing() {
       toast.success('Listing updated successfully!');
     },
     onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || 'Failed to update listing';
+      const message = extractErrorMessage(error) || 'Failed to update listing';
       toast.error(message);
     },
   });
@@ -130,8 +171,7 @@ export function useSubmitListing() {
       toast.success('Listing submitted for review!');
     },
     onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || 'Failed to submit listing';
+      const message = extractErrorMessage(error) || 'Failed to submit listing';
       toast.error(message);
     },
   });
@@ -145,9 +185,15 @@ export function useUploadProof() {
       listingId,
       proofData,
     }: {
-      listingId: number;
+      listingId: number | string;
       proofData: ProofFileCreate;
     }) => {
+      // Ensure listingId is a number
+      const id = typeof listingId === 'string' ? parseInt(listingId, 10) : Number(listingId);
+      if (isNaN(id) || id <= 0) {
+        throw new Error('Invalid listing ID');
+      }
+      
       const formData = new FormData();
       formData.append('proof_type', proofData.proof_type);
       formData.append('file', proofData.file);
@@ -156,7 +202,7 @@ export function useUploadProof() {
       }
 
       const response = await apiClient.post<{ proof: any }>(
-        `/listings/${listingId}/proofs`,
+        `/listings/${id}/proofs`,
         formData,
         {
           headers: {
@@ -167,14 +213,19 @@ export function useUploadProof() {
       return response.data.proof;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.listings.detail(variables.listingId),
-      });
+      // Ensure we use a number for the query key
+      const id = typeof variables.listingId === 'string' 
+        ? parseInt(variables.listingId, 10) 
+        : Number(variables.listingId);
+      if (!isNaN(id) && id > 0) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.listings.detail(id),
+        });
+      }
       toast.success('Proof file uploaded successfully!');
     },
     onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || 'Failed to upload proof file';
+      const message = extractErrorMessage(error) || 'Failed to upload proof file';
       toast.error(message);
     },
   });
@@ -197,8 +248,7 @@ export function useDeleteListing() {
       router.push('/seller/listings');
     },
     onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || 'Failed to delete listing';
+      const message = extractErrorMessage(error) || 'Failed to delete listing';
       toast.error(message);
     },
   });

@@ -10,7 +10,7 @@ interface PaystackCheckoutButtonProps {
   transactionId: number;
   amount: number; // in cents
   email: string;
-  onSuccess?: () => void;
+  onSuccess?: (reference: string) => void;
   className?: string;
 }
 
@@ -74,11 +74,13 @@ export function PaystackCheckoutButton({
           amount: amount, // Amount in kobo (Paystack expects smallest currency unit)
           ref: transaction.paystack_reference,
           callback: async (response: any) => {
-            // Payment successful - backend webhook will handle verification
-            // Just refresh the page to show updated state
-            toast.success('Payment successful! Funds held in escrow.');
+            // Payment successful - pass reference to parent
             setIsLoading(false);
-            onSuccess?.();
+            if (response.reference) {
+              onSuccess?.(response.reference);
+            } else {
+              toast.success('Payment successful! Funds held in escrow.');
+            }
           },
           onClose: () => {
             setIsLoading(false);

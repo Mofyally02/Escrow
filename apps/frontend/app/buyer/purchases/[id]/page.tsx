@@ -3,26 +3,35 @@
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTransactionDetail, useRevealCredentials } from '@/lib/hooks/useBuyerTransactions';
+import {
+  useConfirmPayment,
+  useSignOwnershipAgreement,
+  useReleaseFunds,
+} from '@/lib/hooks/useBuyerPurchaseFlow';
 import { TransactionTimeline } from '@/components/buyer/transaction-timeline';
 import { PaystackCheckoutButton } from '@/components/buyer/paystack-checkout-button';
-import { ContractSigner } from '@/components/buyer/contract-signer';
+import { OwnershipAgreementSigner } from '@/components/buyer/ownership-agreement-signer';
 import { AccessConfirmationDialog } from '@/components/buyer/access-confirmation-dialog';
 import { Button } from '@/components/ui/button';
-import { Shield, LockKeyhole, Eye, CheckCircle2 } from 'lucide-react';
+import { Shield, LockKeyhole, Eye, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TransactionState } from '@/types/transaction';
 
 export default function TransactionDetailPage() {
   const params = useParams();
   const transactionId = parseInt(params?.id as string);
   const { user } = useAuth();
-  const { data: transaction, isLoading } = useTransactionDetail(transactionId);
+  const { data: transaction, isLoading, refetch } = useTransactionDetail(transactionId);
   const revealCredentials = useRevealCredentials();
+  const confirmPayment = useConfirmPayment();
+  const signOwnershipAgreement = useSignOwnershipAgreement();
+  const releaseFunds = useReleaseFunds();
+
   const [showCredentials, setShowCredentials] = useState(false);
   const [credentials, setCredentials] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
   const [password, setPassword] = useState('');
   const [showPasswordInput, setShowPasswordInput] = useState(false);
 
@@ -49,9 +58,27 @@ export default function TransactionDetailPage() {
     );
   };
 
-  const handlePaymentSuccess = () => {
-    // Refetch transaction to get updated state
-    window.location.reload();
+  const handlePaymentSuccess = async (reference: string) => {
+    // Confirm payment with backend
+    confirmPayment.mutate(
+      {
+        transactionId,
+        data: {
+          paystack_reference: reference,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success('Payment confirmed! Funds held in escrow.');
+          refetch();
+        },
+        onError: (error: any) => {
+          const message =
+            error.response?.data?.detail || 'Failed to confirm payment';
+          toast.error(message);
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -82,10 +109,24 @@ export default function TransactionDetailPage() {
     })}`;
   };
 
+  const state: TransactionState = transaction.state as TransactionState;
+
+  // Determine what actions are available based on state
+  const showPayment =
+    state === 'purchase_initiated' || state === 'payment_pending' || state === 'pending';
+  const showOwnershipAgreement =
+    state === 'funds_held' ||
+    state === 'ownership_agreement_pending' ||
+    state === 'ownership_agreement_signed';
   const canRevealCredentials =
-    transaction.state === 'contract_signed' || transaction.state === 'credentials_released';
-  const canConfirmAccess =
-    transaction.state === 'credentials_released' && !transaction.buyer_confirmed_access;
+    state === 'temporary_access_granted' ||
+    state === 'verification_window' ||
+    state === 'ownership_agreement_signed' ||
+    state === 'funds_release_pending';
+  const showVerificationStatus = state === 'verification_window';
+  const canReleaseFunds =
+    state === 'ownership_agreement_signed' || state === 'funds_release_pending';
+  const isCompleted = state === 'completed' || state === 'funds_released';
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,7 +144,7 @@ export default function TransactionDetailPage() {
 
           {/* Transaction Timeline */}
           <div className="bg-card border rounded-lg p-6">
-            <TransactionTimeline currentState={transaction.state} />
+            <TransactionTimeline currentState={state} />
           </div>
 
           {/* Order Summary */}
@@ -123,8 +164,8 @@ export default function TransactionDetailPage() {
             </div>
           </div>
 
-          {/* Payment Section */}
-          {transaction.state === 'pending' && (
+          {/* STEP 2: Payment Section */}
+          {showPayment && (
             <div className="bg-card border rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Complete Payment</h2>
               <p className="text-muted-foreground mb-4">
@@ -135,24 +176,21 @@ export default function TransactionDetailPage() {
                 transactionId={transactionId}
                 amount={transaction.amount_usd}
                 email={user?.email || ''}
-                onSuccess={handlePaymentSuccess}
+                onSuccess={(reference) => handlePaymentSuccess(reference)}
               />
             </div>
           )}
 
-          {/* Contract Signing */}
-          {(transaction.state === 'funds_held' ||
-            transaction.state === 'contract_signed') && (
-            <ContractSigner
+          {/* STEP 5: Ownership Agreement Signing */}
+          {showOwnershipAgreement && (
+            <OwnershipAgreementSigner
               transactionId={transactionId}
-              contractPdfUrl={transaction.contract?.pdf_url}
-              isSigned={transaction.state === 'contract_signed'}
-              signedByName={transaction.contract?.signed_by_name}
-              signedAt={transaction.contract?.signed_at}
+              isSigned={state === 'ownership_agreement_signed'}
+              onSignSuccess={() => refetch()}
             />
           )}
 
-          {/* Credential Reveal */}
+          {/* STEP 3 & 4: Credential Reveal */}
           {canRevealCredentials && !showCredentials && (
             <div className="bg-card border rounded-lg p-6">
               <div className="flex items-start gap-3 mb-4">
@@ -229,6 +267,26 @@ export default function TransactionDetailPage() {
             </div>
           )}
 
+          {/* STEP 4: Verification Window Status */}
+          {showVerificationStatus && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="rounded-full bg-blue-100 p-2">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 mb-1">
+                    Verification Window Active
+                  </h3>
+                  <p className="text-sm text-blue-800">
+                    You have access to verify the account. Once verified, you can proceed to sign
+                    the ownership agreement.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Credentials Display (One-time) */}
           {showCredentials && credentials && (
             <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
@@ -283,18 +341,18 @@ export default function TransactionDetailPage() {
             </div>
           )}
 
-          {/* Access Confirmation */}
-          {canConfirmAccess && (
+          {/* STEP 6: Funds Release */}
+          {canReleaseFunds && (
             <div className="bg-card border rounded-lg p-6">
               <div className="flex items-start gap-3 mb-4">
                 <div className="rounded-full bg-green-100 p-2">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Confirm Access</h3>
+                  <h3 className="font-semibold mb-1">Release Funds to Seller</h3>
                   <p className="text-sm text-muted-foreground">
-                    Once you've successfully logged into the account, confirm
-                    access to release payment to the seller.
+                    Once you've successfully logged into the account and verified ownership,
+                    confirm to release payment to the seller. This action is irreversible.
                   </p>
                 </div>
               </div>
@@ -304,22 +362,64 @@ export default function TransactionDetailPage() {
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                I Have Successfully Logged In
+                Confirm Access & Release Funds
               </Button>
             </div>
           )}
 
-          {/* Completed State */}
-          {transaction.state === 'completed' && (
+          {/* STEP 7: Completed State */}
+          {isCompleted && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
               <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-green-900 mb-2">
                 Transaction Completed!
               </h3>
-              <p className="text-green-800">
+              <p className="text-green-800 mb-4">
                 Payment has been released to the seller. Thank you for using
                 ESCROW!
               </p>
+              {transaction.contract?.pdf_url && (
+                <div className="flex gap-2 justify-center mt-4">
+                  <Button variant="outline" asChild>
+                    <a
+                      href={transaction.contract.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Download Contract PDF
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Error States */}
+          {state === 'disputed' && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-red-900 mb-1">Dispute Opened</h3>
+                  <p className="text-sm text-red-800">
+                    This transaction is under dispute. Please contact support for assistance.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {state === 'refunded' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-blue-900 mb-1">Refunded</h3>
+                  <p className="text-sm text-blue-800">
+                    This transaction has been refunded. Funds have been returned to your account.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -330,8 +430,11 @@ export default function TransactionDetailPage() {
         transactionId={transactionId}
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}
+        onConfirmSuccess={() => {
+          refetch();
+          setShowConfirmDialog(false);
+        }}
       />
     </div>
   );
 }
-

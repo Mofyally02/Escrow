@@ -13,7 +13,7 @@ export interface CatalogListing {
   monthly_earnings: number | null;
   account_age_months: number | null;
   rating: string | null;
-  state: 'approved' | 'reserved' | 'sold';
+  state: 'approved' | 'reserved' | 'sold'; // Backend only returns 'approved' to buyers
   seller_id: number;
   created_at: string;
   updated_at: string;

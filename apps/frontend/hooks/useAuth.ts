@@ -47,10 +47,10 @@ export function useAuth() {
       return response.data;
     },
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always refetch when invalidated (changed from 5 minutes to ensure fresh data after login)
     enabled: hasToken, // Only fetch if token exists
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on mount if data exists
+    refetchOnMount: true, // Refetch on mount to get fresh user data (changed from false)
   });
 
   // Logout mutation

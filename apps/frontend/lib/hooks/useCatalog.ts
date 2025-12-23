@@ -27,7 +27,10 @@ export function useCatalogList(filters: CatalogFilters = {}) {
       );
       
       // Transform to paginated format for infinite query
-      const listings = response.data;
+      // Filter out any non-approved listings as a safety measure (backend should already filter)
+      const listings = response.data.filter(
+        (listing) => listing.state === 'approved'
+      );
       const hasMore = listings.length === PAGE_SIZE;
       
       return {
@@ -54,7 +57,17 @@ export function useListingDetail(id: number) {
       const response = await apiClient.get<ListingDetail>(
         `/catalog/${id}`
       );
-      return response.data;
+      const listing = response.data;
+      
+      // Safety check: Backend should only return APPROVED listings
+      // If we get a non-approved listing, log a warning
+      if (listing.state !== 'approved') {
+        console.warn(
+          `Listing ${id} has state '${listing.state}' but should be 'approved' for buyer view`
+        );
+      }
+      
+      return listing;
     },
     enabled: !!id && !isNaN(id),
     staleTime: 5 * 60 * 1000, // 5 minutes

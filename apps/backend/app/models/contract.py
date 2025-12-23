@@ -15,6 +15,11 @@ class Contract(Timestamped):
     # E-signature (buyer signs by typing full legal name)
     signed_by_name = Column(String(255), nullable=True)  # Buyer's full legal name (must match registration)
     signed_at = Column(String(50), nullable=True)  # ISO timestamp
+    signature_hash = Column(String(64), nullable=True)  # SHA-256 hash of signature for integrity verification
+    
+    # Ownership transfer agreement
+    ownership_transfer_acknowledged = Column(Boolean, default=False, nullable=False)  # Buyer acknowledged ownership transfer
+    ownership_transfer_acknowledged_at = Column(String(50), nullable=True)  # Timestamp of ownership acknowledgment
     
     # Contract metadata
     contract_version = Column(String(20), default="1.0", nullable=False)

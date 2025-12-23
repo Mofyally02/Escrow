@@ -37,7 +37,7 @@ async def reveal_credentials(
     - Never logs or stores plaintext
     
     Requirements:
-    - Transaction must be in CONTRACT_SIGNED or FUNDS_HELD state
+    - Transaction must be in OWNERSHIP_AGREEMENT_SIGNED, FUNDS_HELD, or TEMPORARY_ACCESS_GRANTED state
     - Credentials must not have been revealed before
     - Buyer must provide correct password
     """
@@ -58,10 +58,10 @@ async def reveal_credentials(
         )
     
     # Verify transaction state
-    if transaction.state not in [TransactionState.CONTRACT_SIGNED, TransactionState.FUNDS_HELD]:
+    if transaction.state not in [TransactionState.OWNERSHIP_AGREEMENT_SIGNED, TransactionState.FUNDS_HELD, TransactionState.TEMPORARY_ACCESS_GRANTED]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Credentials can only be revealed when transaction is in CONTRACT_SIGNED or FUNDS_HELD state. Current state: {transaction.state.value}"
+            detail=f"Credentials can only be revealed when transaction is in OWNERSHIP_AGREEMENT_SIGNED, FUNDS_HELD, or TEMPORARY_ACCESS_GRANTED state. Current state: {transaction.state.value}"
         )
     
     # Get listing and credentials
@@ -133,7 +133,7 @@ async def reveal_credentials(
     transaction = transaction_crud.update_transaction_state(
         db=db,
         transaction=transaction,
-        new_state=TransactionState.CREDENTIALS_RELEASED
+        new_state=TransactionState.TEMPORARY_ACCESS_GRANTED
     )
     
     # Log event (DO NOT log plaintext credentials)

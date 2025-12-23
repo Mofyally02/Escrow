@@ -46,6 +46,13 @@ async def create_listing(
             detail="Email and phone must be verified to create listings"
         )
     
+    # Verify seller agreement acknowledgment
+    if not listing_data.seller_agreement_acknowledged:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must acknowledge that Escrow administrators will never receive or view account passwords. Verification is performed using provided proof materials only."
+        )
+    
     # Create listing with encrypted credentials
     try:
         listing = listing_crud.create_listing(

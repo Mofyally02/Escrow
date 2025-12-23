@@ -45,6 +45,7 @@ class User(Timestamped):
     )
     transactions_as_buyer = relationship("Transaction", foreign_keys="Transaction.buyer_id", back_populates="buyer")
     transactions_as_seller = relationship("Transaction", foreign_keys="Transaction.seller_id", back_populates="seller")
+    listing_draft = relationship("ListingDraft", back_populates="seller", uselist=False, cascade="all, delete-orphan")
     
     @property
     def is_verified(self) -> bool:

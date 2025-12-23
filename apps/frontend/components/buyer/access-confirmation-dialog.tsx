@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { useConfirmAccess } from '@/lib/hooks/useBuyerTransactions';
+import { useReleaseFunds } from '@/lib/hooks/useBuyerPurchaseFlow';
 import {
   Dialog,
   DialogContent,
@@ -17,27 +17,54 @@ interface AccessConfirmationDialogProps {
   transactionId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onConfirmSuccess?: () => void;
 }
 
 export function AccessConfirmationDialog({
   transactionId,
   open,
   onOpenChange,
+  onConfirmSuccess,
 }: AccessConfirmationDialogProps) {
-  const [confirmed, setConfirmed] = useState(false);
-  const confirmAccess = useConfirmAccess();
+  const [checkboxes, setCheckboxes] = useState({
+    loggedIn: false,
+    fullControl: false,
+    changedPassword: false,
+    releaseFunds: false,
+  });
+  const releaseFunds = useReleaseFunds();
+
+  const allChecked =
+    checkboxes.loggedIn &&
+    checkboxes.fullControl &&
+    checkboxes.changedPassword &&
+    checkboxes.releaseFunds;
 
   const handleConfirm = () => {
-    if (!confirmed) {
+    if (!allChecked) {
       return;
     }
 
-    confirmAccess.mutate(transactionId, {
-      onSuccess: () => {
-        onOpenChange(false);
-        setConfirmed(false);
+    releaseFunds.mutate(
+      {
+        transactionId,
+        data: {
+          confirm_ownership: true,
+        },
       },
-    });
+      {
+        onSuccess: () => {
+          onOpenChange(false);
+          setCheckboxes({
+            loggedIn: false,
+            fullControl: false,
+            changedPassword: false,
+            releaseFunds: false,
+          });
+          onConfirmSuccess?.();
+        },
+      }
+    );
   };
 
   return (
@@ -69,22 +96,78 @@ export function AccessConfirmationDialog({
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              id="confirm-access"
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
-              className="mt-1"
-            />
-            <label
-              htmlFor="confirm-access"
-              className="text-sm text-foreground cursor-pointer"
-            >
-              I confirm that I have successfully logged into the account and
-              have full access. I understand that this will release payment to
-              the seller.
-            </label>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="logged-in"
+                checked={checkboxes.loggedIn}
+                onChange={(e) =>
+                  setCheckboxes({ ...checkboxes, loggedIn: e.target.checked })
+                }
+                className="mt-1"
+              />
+              <label
+                htmlFor="logged-in"
+                className="text-sm text-foreground cursor-pointer flex-1"
+              >
+                I have successfully logged into the account
+              </label>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="full-control"
+                checked={checkboxes.fullControl}
+                onChange={(e) =>
+                  setCheckboxes({ ...checkboxes, fullControl: e.target.checked })
+                }
+                className="mt-1"
+              />
+              <label
+                htmlFor="full-control"
+                className="text-sm text-foreground cursor-pointer flex-1"
+              >
+                I have full control (email, 2FA, recovery)
+              </label>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="changed-password"
+                checked={checkboxes.changedPassword}
+                onChange={(e) =>
+                  setCheckboxes({ ...checkboxes, changedPassword: e.target.checked })
+                }
+                className="mt-1"
+              />
+              <label
+                htmlFor="changed-password"
+                className="text-sm text-foreground cursor-pointer flex-1"
+              >
+                I have changed password and secured the account
+              </label>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="release-funds"
+                checked={checkboxes.releaseFunds}
+                onChange={(e) =>
+                  setCheckboxes({ ...checkboxes, releaseFunds: e.target.checked })
+                }
+                className="mt-1"
+              />
+              <label
+                htmlFor="release-funds"
+                className="text-sm text-foreground cursor-pointer flex-1"
+              >
+                I release funds to seller – this is irreversible
+              </label>
+            </div>
           </div>
         </div>
 
@@ -94,11 +177,11 @@ export function AccessConfirmationDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!confirmed || confirmAccess.isPending}
+            disabled={!allChecked || releaseFunds.isPending}
             className="bg-primary"
           >
-            {confirmAccess.isPending ? (
-              'Confirming...'
+            {releaseFunds.isPending ? (
+              'Releasing Funds...'
             ) : (
               <>
                 <CheckCircle2 className="h-4 w-4 mr-2" />

@@ -14,14 +14,13 @@ export default function AdminTransactionsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Transactions</h1>
-          <p className="text-muted-foreground">
-            Monitor all escrow transactions
-          </p>
-        </div>
+    <>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Transactions</h1>
+        <p className="text-muted-foreground">
+          Monitor all escrow transactions
+        </p>
+      </div>
 
         {/* Filters */}
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -58,11 +57,10 @@ export default function AdminTransactionsPage() {
         </div>
 
         {/* Table */}
-        <TransactionTable
-          transactions={transactions || []}
-          isLoading={isLoading}
-        />
-      </div>
-    </div>
+      <TransactionTable
+        transactions={transactions || []}
+        isLoading={isLoading}
+      />
+    </>
   );
 }

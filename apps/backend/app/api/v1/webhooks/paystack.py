@@ -96,7 +96,7 @@ async def handle_paystack_webhook(
     
     # Process event based on type
     if transaction:
-        if event_type == "charge.success" and transaction.state == TransactionState.PENDING:
+        if event_type == "charge.success" and transaction.state in [TransactionState.PURCHASE_INITIATED, TransactionState.PAYMENT_PENDING]:
             # Funds authorized and held
             authorization_code = event_data.get("authorization_code")
             transaction = transaction_crud.update_transaction_state(

@@ -26,7 +26,26 @@ export default function ListingDetailPage() {
         <div className="text-center">
           <p className="text-destructive text-lg mb-2">Listing not found</p>
           <p className="text-muted-foreground">
-            This listing may have been removed or doesn't exist.
+            This listing may have been removed, sold, or doesn't exist.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check: Backend should only return APPROVED listings to buyers
+  // If we somehow get a non-approved listing, show appropriate message
+  if (listing.state !== 'approved') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive text-lg mb-2">
+            {listing.state === 'sold' ? 'This listing has been sold' : 
+             listing.state === 'reserved' ? 'This listing is reserved' : 
+             'This listing is not available'}
+          </p>
+          <p className="text-muted-foreground">
+            This listing is no longer available for purchase.
           </p>
         </div>
       </div>

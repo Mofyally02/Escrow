@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -19,35 +20,27 @@ export function Navbar() {
     { href: '/catalog', label: 'Browse Listings' },
   ];
 
-  const roleBasedLinks = {
-    buyer: [
+  const getRoleLinks = () => {
+    if (!isAuthenticated || !user) return [];
+    
+    // All authenticated users can access both buyer and seller routes
+    const commonLinks = [
       { href: '/buyer/dashboard', label: 'My Purchases', icon: ShoppingBag },
-    ],
-    seller: [
       { href: '/seller/dashboard', label: 'My Listings', icon: User },
       { href: '/seller/submit', label: 'Submit Listing', icon: Shield },
-    ],
-    admin: [
-      { href: '/buyer/dashboard', label: 'My Purchases', icon: ShoppingBag },
-      { href: '/seller/dashboard', label: 'My Listings', icon: User },
-      { href: '/admin/dashboard', label: 'Moderation Queue', icon: Shield },
-      { href: '/admin/transactions', label: 'Transactions', icon: Lock },
-    ],
-    super_admin: [
-      { href: '/buyer/dashboard', label: 'My Purchases', icon: ShoppingBag },
-      { href: '/seller/dashboard', label: 'My Listings', icon: User },
-      { href: '/admin/dashboard', label: 'Moderation Queue', icon: Shield },
-      { href: '/admin/transactions', label: 'Transactions', icon: Lock },
-    ],
-  };
-
-  const getRoleLinks = () => {
-    if (!user?.role) return [];
-    const links = roleBasedLinks[user.role as keyof typeof roleBasedLinks] || [];
+    ];
     
-    // For admins/super_admins, show both buyer and seller links
-    // For regular users, show based on their role
-    return links;
+    // Add admin links if user is admin or super_admin
+    if (user.role === 'admin' || user.role === 'super_admin') {
+      return [
+        ...commonLinks,
+        { href: '/admin/dashboard', label: 'Moderation Queue', icon: Shield },
+        { href: '/admin/transactions', label: 'Transactions', icon: Lock },
+        { href: '/admin/legal', label: 'Legal Documents', icon: Shield },
+      ];
+    }
+    
+    return commonLinks;
   };
 
   return (

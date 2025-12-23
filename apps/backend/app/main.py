@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -42,6 +43,8 @@ logger.info(f"Starting ESCROW API in {settings.ENVIRONMENT} mode")
 # Security middleware (must be before CORS)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
+# Response compression for faster API responses (compress all responses > 500 bytes)
+app.add_middleware(GZipMiddleware, minimum_size=500)  # Lower threshold for better performance
 
 # CORS middleware
 app.add_middleware(

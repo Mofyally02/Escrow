@@ -79,7 +79,7 @@ async def metrics(db: Session = Depends(get_db)) -> Dict[str, Any]:
         from app.models.transaction import Transaction, TransactionState
         
         total_transactions = db.query(Transaction).count()
-        pending = db.query(Transaction).filter(Transaction.state == TransactionState.PENDING).count()
+        pending = db.query(Transaction).filter(Transaction.state == TransactionState.PAYMENT_PENDING).count()
         completed = db.query(Transaction).filter(Transaction.state == TransactionState.COMPLETED).count()
         refunded = db.query(Transaction).filter(Transaction.state == TransactionState.REFUNDED).count()
         

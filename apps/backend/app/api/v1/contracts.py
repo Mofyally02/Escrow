@@ -161,7 +161,7 @@ async def sign_contract(
     transaction = transaction_crud.update_transaction_state(
         db=db,
         transaction=transaction,
-        new_state=TransactionState.CONTRACT_SIGNED
+        new_state=TransactionState.OWNERSHIP_AGREEMENT_SIGNED
     )
     
     # Log event

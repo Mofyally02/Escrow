@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from './useAuth';
 
 export type UserMode = 'buyer' | 'seller';
@@ -9,6 +10,7 @@ const MODE_STORAGE_KEY = 'escrow_user_mode';
 
 export function useUserMode() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [mode, setMode] = useState<UserMode>('buyer');
 
   // All authenticated users can access both buyer and seller features
@@ -17,25 +19,22 @@ export function useUserMode() {
   const canSell = !!user; // All authenticated users can sell (backend will check permissions)
   const hasBothModes = !!user; // All authenticated users can switch modes
 
-  // Initialize mode from storage or default based on role
+  // Detect mode from current route
   useEffect(() => {
     if (!user) {
       setMode('buyer');
       return;
     }
 
-    // If user can only do one thing, set that mode
-    if (canBuy && !canSell) {
-      setMode('buyer');
-      return;
-    }
-    if (canSell && !canBuy) {
+    // Detect mode from current route
+    if (pathname?.startsWith('/seller')) {
       setMode('seller');
-      return;
-    }
-
-    // If user can do both, check storage or default to buyer
-    if (hasBothModes) {
+      localStorage.setItem(MODE_STORAGE_KEY, 'seller');
+    } else if (pathname?.startsWith('/buyer') || pathname?.startsWith('/catalog')) {
+      setMode('buyer');
+      localStorage.setItem(MODE_STORAGE_KEY, 'buyer');
+    } else {
+      // If not on a specific route, check storage or default
       const stored = localStorage.getItem(MODE_STORAGE_KEY);
       if (stored === 'buyer' || stored === 'seller') {
         setMode(stored as UserMode);
@@ -43,7 +42,7 @@ export function useUserMode() {
         setMode('buyer'); // Default
       }
     }
-  }, [user, canBuy, canSell, hasBothModes]);
+  }, [user, pathname]);
 
   const changeMode = (newMode: UserMode) => {
     if (!hasBothModes) return; // Can't change if only one mode available

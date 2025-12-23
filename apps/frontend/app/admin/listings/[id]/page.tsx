@@ -37,29 +37,27 @@ export default function AdminListingReviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto space-y-8">
-          {/* Header */}
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <Button variant="ghost" asChild>
+          <Link href="/admin/listings">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Queue
+          </Link>
+        </Button>
+        <div className="mt-4 flex items-center justify-between">
           <div>
-            <Button variant="ghost" asChild>
-              <Link href="/admin/listings">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Queue
-              </Link>
-            </Button>
-            <div className="mt-4 flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
-                <div className="flex items-center gap-3">
-                  <ListingStatusBadge state={listing.state} />
-                  <span className="text-sm text-muted-foreground">
-                    Submitted {new Date(listing.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
+            <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
+            <div className="flex items-center gap-3">
+              <ListingStatusBadge state={listing.state} />
+              <span className="text-sm text-muted-foreground">
+                Submitted {new Date(listing.created_at).toLocaleDateString()}
+              </span>
             </div>
           </div>
+        </div>
+      </div>
 
           {/* Listing Details */}
           <div className="bg-card border rounded-lg p-6 space-y-6">
@@ -179,18 +177,16 @@ export default function AdminListingReviewPage() {
             </div>
           )}
 
-          {/* Action Buttons */}
-          {listing.state === 'under_review' && (
-            <div className="bg-card border rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Actions</h2>
-              <AdminActionButtons
-                listingId={listing.id}
-                currentState={listing.state}
-              />
-            </div>
-          )}
+      {/* Action Buttons */}
+      {listing.state === 'under_review' && (
+        <div className="bg-card border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Actions</h2>
+          <AdminActionButtons
+            listingId={listing.id}
+            currentState={listing.state}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 }

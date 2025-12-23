@@ -1,35 +1,42 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import { memo, useMemo } from 'react';
 import { Shield, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { CatalogListing } from '@/types/catalog';
 import { cn } from '@/lib/utils';
+import { ListingStatusBadge } from '@/components/seller/listing-status-badge';
 
 interface ListingCardProps {
   listing: CatalogListing;
   className?: string;
 }
 
-export function ListingCard({ listing, className }: ListingCardProps) {
-  const formatPrice = (cents: number) => {
-    return `$${(cents / 100).toLocaleString('en-US', {
+export const ListingCard = memo(function ListingCard({ listing, className }: ListingCardProps) {
+  // Memoize formatted values to prevent recalculation on every render
+  const formattedPrice = useMemo(
+    () => `$${(listing.price_usd / 100).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })}`;
-  };
+    })}`,
+    [listing.price_usd]
+  );
 
-  const formatEarnings = (cents: number | null) => {
-    if (!cents) return 'N/A';
-    return `$${(cents / 100).toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })}/mo`;
-  };
+  const formattedEarnings = useMemo(
+    () => {
+      if (!listing.monthly_earnings) return 'N/A';
+      return `$${(listing.monthly_earnings / 100).toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })}/mo`;
+    },
+    [listing.monthly_earnings]
+  );
 
   return (
     <Link
       href={`/catalog/${listing.id}`}
+      prefetch={true} // Prefetch on hover for instant navigation
       className={cn(
         'group block bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200',
         className
@@ -47,6 +54,10 @@ export function ListingCard({ listing, className }: ListingCardProps) {
               {listing.title}
             </h3>
           </div>
+          {/* Status Badge - Only show if not approved */}
+          {listing.state !== 'approved' && (
+            <ListingStatusBadge state={listing.state as any} />
+          )}
         </div>
 
         {/* Category & Platform */}
@@ -67,7 +78,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
               <span>Price</span>
             </div>
             <p className="text-lg font-bold text-primary">
-              {formatPrice(listing.price_usd)}
+              {formattedPrice}
             </p>
           </div>
           {listing.monthly_earnings && (
@@ -77,7 +88,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
                 <span>Earnings</span>
               </div>
               <p className="text-sm font-semibold">
-                {formatEarnings(listing.monthly_earnings)}
+                {formattedEarnings}
               </p>
             </div>
           )}
@@ -116,4 +127,10 @@ export function ListingCard({ listing, className }: ListingCardProps) {
       </div>
     </Link>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for memo - only re-render if listing data changes
+  return prevProps.listing.id === nextProps.listing.id &&
+    prevProps.listing.title === nextProps.listing.title &&
+    prevProps.listing.price_usd === nextProps.listing.price_usd &&
+    prevProps.listing.state === nextProps.listing.state;
+});

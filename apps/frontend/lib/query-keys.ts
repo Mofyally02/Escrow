@@ -44,5 +44,21 @@ export const queryKeys = {
     users: ['admin', 'users'] as const,
     analytics: ['admin', 'analytics'] as const,
   },
+
+  // Legal Documents
+  legal: {
+    all: ['legal'] as const,
+    documents: (filters?: Record<string, unknown>) =>
+      ['legal', 'documents', filters] as const,
+    document: (id: number) => ['legal', 'documents', id] as const,
+    public: {
+      all: ['legal', 'public'] as const,
+      slug: (slug: string) => ['legal', 'public', 'slug', slug] as const,
+      type: (type: string) => ['legal', 'public', 'type', type] as const,
+    },
+    acknowledgments: ['legal', 'acknowledgments'] as const,
+    'acknowledgments.status': (type: string) =>
+      ['legal', 'acknowledgments', 'status', type] as const,
+  },
 } as const;
 

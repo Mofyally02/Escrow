@@ -18,7 +18,7 @@ import Link from 'next/link';
 export default function CatalogPage() {
   const [filters, setFilters] = useState<CatalogFilters>({});
   const [showFilters, setShowFilters] = useState(false);
-  const { mode, changeMode, canBuy, canSell, hasBothModes } = useUserMode();
+  const { hasBothModes } = useUserMode();
   const { isAuthenticated } = useAuth();
 
   const {
@@ -59,55 +59,43 @@ export default function CatalogPage() {
             <div className="flex items-center justify-center gap-2 mb-4">
               <Shield className="h-8 w-8 text-primary" />
               <h1 className="text-4xl font-bold">
-                {mode === 'buyer' ? 'Browse Verified Accounts' : 'Your Selling Hub'}
+                Browse Verified Accounts
               </h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              {mode === 'buyer'
-                ? 'Discover established freelance accounts verified by our team. Every listing is escrow-protected and admin-reviewed.'
-                : 'Manage your listings and reach buyers looking for verified accounts. List your accounts and start selling today.'}
+              Discover established freelance accounts verified by our team. Every listing is escrow-protected and admin-reviewed.
             </p>
             
             {/* Mode Switcher - Only show if user can do both */}
             {isAuthenticated && hasBothModes && (
               <div className="flex justify-center pt-4">
-                <ModeSwitcher
-                  currentMode="both"
-                  onModeChange={changeMode}
-                  className="max-w-xs"
-                />
+                <ModeSwitcher className="max-w-xs" />
               </div>
             )}
 
             {/* Quick Actions */}
             {isAuthenticated && (
               <div className="flex items-center justify-center gap-4 pt-6 flex-wrap">
-                {mode === 'buyer' && canBuy && (
-                  <Button size="lg" asChild>
-                    <Link href="/buyer/purchases">
-                      <ShoppingBag className="h-4 w-4 mr-2" />
-                      My Purchases
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                  </Button>
-                )}
-                {mode === 'seller' && canSell && (
-                  <>
-                    <Button size="lg" asChild>
-                      <Link href="/seller/dashboard">
-                        <Store className="h-4 w-4 mr-2" />
-                        My Listings
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Link>
-                    </Button>
-                    <Button size="lg" variant="outline" asChild>
-                      <Link href="/seller/submit">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Submit New Listing
-                      </Link>
-                    </Button>
-                  </>
-                )}
+                <Button size="lg" asChild>
+                  <Link href="/buyer/purchases">
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    My Purchases
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/seller/dashboard">
+                    <Store className="h-4 w-4 mr-2" />
+                    My Listings
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/seller/submit">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Submit New Listing
+                  </Link>
+                </Button>
               </div>
             )}
 
@@ -146,16 +134,12 @@ export default function CatalogPage() {
               <div className="flex gap-4 items-center flex-wrap">
                 <div className="flex-1 min-w-[200px]">
                   <SearchBar
-                    value={filters.search || ''}
-                    onChange={handleSearchChange}
+                    onSearch={handleSearchChange}
+                    placeholder="Search listings..."
                   />
                 </div>
                 {isAuthenticated && hasBothModes && (
-                  <ModeSwitcher
-                    currentMode="both"
-                    onModeChange={changeMode}
-                    className="hidden sm:flex"
-                  />
+                  <ModeSwitcher className="hidden sm:flex" />
                 )}
                 <Button
                   variant="outline"
@@ -174,30 +158,24 @@ export default function CatalogPage() {
                 />
                 {isAuthenticated && (
                   <div className="flex gap-2">
-                    {mode === 'buyer' && canBuy && (
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href="/buyer/purchases">
-                          <ShoppingBag className="h-4 w-4 mr-2" />
-                          My Purchases
-                        </Link>
-                      </Button>
-                    )}
-                    {mode === 'seller' && canSell && (
-                      <>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href="/seller/dashboard">
-                            <Store className="h-4 w-4 mr-2" />
-                            My Listings
-                          </Link>
-                        </Button>
-                        <Button size="sm" asChild>
-                          <Link href="/seller/submit">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Submit Listing
-                          </Link>
-                        </Button>
-                      </>
-                    )}
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/buyer/purchases">
+                        <ShoppingBag className="h-4 w-4 mr-2" />
+                        My Purchases
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/seller/dashboard">
+                        <Store className="h-4 w-4 mr-2" />
+                        My Listings
+                      </Link>
+                    </Button>
+                    <Button size="sm" asChild>
+                      <Link href="/seller/submit">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Submit Listing
+                      </Link>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -205,8 +183,23 @@ export default function CatalogPage() {
 
             {/* Results */}
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-card border rounded-lg overflow-hidden animate-pulse">
+                    <div className="p-6 space-y-4">
+                      <div className="h-4 w-16 bg-muted rounded" />
+                      <div className="h-6 w-3/4 bg-muted rounded" />
+                      <div className="flex gap-2">
+                        <div className="h-5 w-20 bg-muted rounded" />
+                        <div className="h-5 w-16 bg-muted rounded" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                        <div className="h-8 w-24 bg-muted rounded" />
+                        <div className="h-6 w-20 bg-muted rounded" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : isError ? (
               <div className="text-center py-12">

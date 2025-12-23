@@ -4,7 +4,10 @@ import { Shield, DollarSign, TrendingUp, Calendar, Star } from 'lucide-react';
 import { ListingDetail } from '@/types/catalog';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useInitiateBuyerPurchase } from '@/lib/hooks/useBuyerPurchaseFlow';
+import { toast } from 'sonner';
+import { LoadingButton } from '@/components/ui/loading-button';
 
 interface ListingDetailHeaderProps {
   listing: ListingDetail;
@@ -12,6 +15,8 @@ interface ListingDetailHeaderProps {
 
 export function ListingDetailHeader({ listing }: ListingDetailHeaderProps) {
   const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+  const initiatePurchase = useInitiateBuyerPurchase();
 
   const formatPrice = (cents: number) => {
     return `$${(cents / 100).toLocaleString('en-US', {
@@ -28,11 +33,55 @@ export function ListingDetailHeader({ listing }: ListingDetailHeaderProps) {
     })}/month`;
   };
 
+  // Determine listing availability
+  // Backend only returns APPROVED listings to buyers, but we handle all states for safety
+  // Normalize state to handle case variations
+  const normalizedState = listing.state?.toLowerCase() || 'approved';
+  const isAvailable = normalizedState === 'approved';
+  const isReserved = normalizedState === 'reserved';
+  const isSold = normalizedState === 'sold';
+  
+  // Safety check: If listing is not approved, it shouldn't be visible to buyers
+  // This is a frontend safeguard (backend already filters)
+  if (!isAvailable && !isReserved && !isSold) {
+    console.warn('Listing has unexpected state:', listing.state);
+  }
+
   // Allow purchase if user is buyer, admin, or super_admin (all can buy)
+  // Only allow purchase if listing is APPROVED (not reserved or sold)
   const canPurchase =
     isAuthenticated &&
     (user?.role === 'buyer' || user?.role === 'admin' || user?.role === 'super_admin') &&
-    listing.state === 'approved';
+    isAvailable;
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated || !user) {
+      router.push(`/login?redirect=/catalog/${listing.id}`);
+      return;
+    }
+
+    if (!isAvailable) {
+      toast.error('This listing is not available for purchase');
+      return;
+    }
+
+    // Initiate purchase using buyer purchase flow
+    initiatePurchase.mutate(
+      { listing_id: listing.id },
+      {
+        onSuccess: (data) => {
+          toast.success('Purchase initiated! Redirecting to payment...');
+          // Redirect to transaction detail page where payment will be shown
+          router.push(`/buyer/purchases/${data.transaction_id}`);
+        },
+        onError: (error: any) => {
+          const message =
+            error.response?.data?.detail || 'Failed to initiate purchase';
+          toast.error(message);
+        },
+      }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -65,20 +114,31 @@ export function ListingDetailHeader({ listing }: ListingDetailHeaderProps) {
           </p>
         </div>
         {canPurchase ? (
-          <Button size="lg" asChild>
-            <Link href={`/transactions/new?listing_id=${listing.id}`}>
-              Buy Now
-            </Link>
-          </Button>
-        ) : listing.state === 'approved' ? (
+          <LoadingButton
+            size="lg"
+            onClick={handleBuyNow}
+            loading={initiatePurchase.isPending}
+            disabled={initiatePurchase.isPending}
+          >
+            Buy Now
+          </LoadingButton>
+        ) : isAvailable ? (
           <Button size="lg" variant="outline" asChild>
             <Link href={`/login?redirect=/catalog/${listing.id}`}>
               Login to Purchase
             </Link>
           </Button>
-        ) : (
+        ) : isReserved ? (
+          <Button size="lg" disabled variant="outline">
+            Reserved
+          </Button>
+        ) : isSold ? (
           <Button size="lg" disabled>
-            {listing.state === 'reserved' ? 'Reserved' : 'Sold'}
+            Sold
+          </Button>
+        ) : (
+          <Button size="lg" disabled variant="outline">
+            Unavailable
           </Button>
         )}
       </div>

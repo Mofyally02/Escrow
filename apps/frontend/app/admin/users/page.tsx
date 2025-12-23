@@ -9,17 +9,15 @@ export default function AdminUsersPage() {
   const { data: users, isLoading } = useAdminUsers();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">User Management</h1>
-          <p className="text-muted-foreground">
-            Manage user accounts and permissions
-          </p>
-        </div>
-
-        <UserTable users={users || []} isLoading={isLoading} />
+    <>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">User Management</h1>
+        <p className="text-muted-foreground">
+          Manage user accounts and permissions
+        </p>
       </div>
-    </div>
+
+      <UserTable users={users || []} isLoading={isLoading} />
+    </>
   );
 }

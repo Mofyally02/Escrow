@@ -9,51 +9,100 @@ interface TransactionTimelineProps {
   className?: string;
 }
 
+// Map states to step numbers for ordering
+const stateToStep: Record<TransactionState, number> = {
+  // STEP 1
+  purchase_initiated: 1,
+  pending: 1, // Legacy
+  payment_pending: 1,
+  // STEP 2
+  funds_held: 2,
+  // STEP 3
+  temporary_access_granted: 3,
+  // STEP 4
+  verification_window: 4,
+  // STEP 5
+  ownership_agreement_pending: 5,
+  ownership_agreement_signed: 5,
+  contract_signed: 5, // Legacy
+  // STEP 6
+  funds_release_pending: 6,
+  funds_released: 6,
+  credentials_released: 6, // Legacy
+  // STEP 7
+  completed: 7,
+  // Terminal states
+  refunded: 0,
+  disputed: 0,
+  cancelled: 0,
+};
+
 const timelineSteps: Array<{
-  state: TransactionState;
+  step: number;
+  states: TransactionState[];
   label: string;
   description: string;
 }> = [
   {
-    state: 'pending',
-    label: 'Payment Initiated',
-    description: 'Purchase started, awaiting payment',
+    step: 1,
+    states: ['purchase_initiated', 'payment_pending', 'pending'],
+    label: 'Purchase Initiated',
+    description: 'Transaction created, awaiting payment',
   },
   {
-    state: 'funds_held',
+    step: 2,
+    states: ['funds_held'],
     label: 'Funds Held in Escrow',
     description: 'Payment received and secured',
   },
   {
-    state: 'contract_signed',
-    label: 'Contract Signed',
-    description: 'Digital contract executed',
+    step: 3,
+    states: ['temporary_access_granted'],
+    label: 'Temporary Access Granted',
+    description: 'Credentials delivered, ready for verification',
   },
   {
-    state: 'credentials_released',
-    label: 'Credentials Revealed',
-    description: 'Account details provided',
+    step: 4,
+    states: ['verification_window'],
+    label: 'Verification Window',
+    description: 'Verify account access (24-48 hours)',
   },
   {
-    state: 'completed',
+    step: 5,
+    states: [
+      'ownership_agreement_pending',
+      'ownership_agreement_signed',
+      'contract_signed',
+    ],
+    label: 'Ownership Agreement',
+    description: 'Sign ownership transfer agreement',
+  },
+  {
+    step: 6,
+    states: ['funds_release_pending', 'funds_released', 'credentials_released'],
+    label: 'Funds Release',
+    description: 'Confirm access and release payment',
+  },
+  {
+    step: 7,
+    states: ['completed'],
     label: 'Transaction Completed',
     description: 'Payment released to seller',
   },
-];
-
-const stateOrder: TransactionState[] = [
-  'pending',
-  'funds_held',
-  'contract_signed',
-  'credentials_released',
-  'completed',
 ];
 
 export function TransactionTimeline({
   currentState,
   className,
 }: TransactionTimelineProps) {
-  const currentIndex = stateOrder.indexOf(currentState);
+  const currentStep = stateToStep[currentState] || 0;
+
+  // Get the step index for the current state
+  const getStepIndex = (step: number) => {
+    return timelineSteps.findIndex((s) => s.step === step);
+  };
+
+  const currentStepIndex = getStepIndex(currentStep);
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -65,27 +114,27 @@ export function TransactionTimeline({
         {/* Steps */}
         <div className="space-y-6">
           {timelineSteps.map((step, index) => {
-            const stepIndex = stateOrder.indexOf(step.state);
-            const isCompleted = stepIndex < currentIndex;
-            const isCurrent = stepIndex === currentIndex;
-            const isPending = stepIndex > currentIndex;
+            const isCompleted = index < currentStepIndex;
+            const isCurrent = index === currentStepIndex;
+            const isPending = index > currentStepIndex;
+            const isInStep = step.states.includes(currentState);
 
             return (
-              <div key={step.state} className="relative flex items-start gap-4">
+              <div key={step.step} className="relative flex items-start gap-4">
                 {/* Icon */}
                 <div
                   className={cn(
                     'relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors',
                     isCompleted &&
                       'bg-primary border-primary text-primary-foreground',
-                    isCurrent &&
+                    (isCurrent || isInStep) &&
                       'bg-primary/10 border-primary text-primary animate-pulse',
                     isPending && 'bg-background border-muted text-muted-foreground'
                   )}
                 >
                   {isCompleted ? (
                     <CheckCircle2 className="h-5 w-5" />
-                  ) : isCurrent ? (
+                  ) : isCurrent || isInStep ? (
                     <Clock className="h-5 w-5" />
                   ) : (
                     <Circle className="h-5 w-5" />
@@ -97,7 +146,7 @@ export function TransactionTimeline({
                   <div
                     className={cn(
                       'font-semibold mb-1',
-                      isCompleted || isCurrent
+                      isCompleted || isCurrent || isInStep
                         ? 'text-foreground'
                         : 'text-muted-foreground'
                     )}
@@ -107,7 +156,7 @@ export function TransactionTimeline({
                   <div
                     className={cn(
                       'text-sm',
-                      isCompleted || isCurrent
+                      isCompleted || isCurrent || isInStep
                         ? 'text-muted-foreground'
                         : 'text-muted-foreground/70'
                     )}
@@ -123,4 +172,3 @@ export function TransactionTimeline({
     </div>
   );
 }
-

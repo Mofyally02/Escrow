@@ -82,8 +82,47 @@ def require_role(allowed_roles: List[Role]):
     return role_checker
 
 
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    Get current authenticated user from JWT token (optional).
+    Returns None if no token provided or token is invalid.
+    Used for endpoints that work with or without authentication.
+    """
+    if credentials is None:
+        return None
+    
+    try:
+        token = credentials.credentials
+        payload = verify_token(token)
+        
+        if payload is None:
+            return None
+        
+        # Check token type
+        if payload.get("type") != "access":
+            return None
+        
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            return None
+        
+        user = get_user_by_id(db, user_id=user_id)
+        if user is None or not user.is_active:
+            return None
+        
+        return user
+    except Exception:
+        # Return None on any error (invalid token, etc.)
+        return None
+
+
 # Pre-configured role dependencies
 require_admin = require_role([Role.ADMIN, Role.SUPER_ADMIN])
 require_super_admin = require_role([Role.SUPER_ADMIN])
-require_seller = require_role([Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN])
+# Allow all authenticated users to access both buyer and seller routes
+# Users can switch between buying and selling without needing separate accounts
+require_seller = require_role([Role.BUYER, Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN])
 require_buyer = require_role([Role.BUYER, Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN])

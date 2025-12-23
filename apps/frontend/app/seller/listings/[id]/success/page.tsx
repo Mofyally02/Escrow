@@ -9,7 +9,32 @@ import { Loader2 } from 'lucide-react';
 
 export default function ListingSuccessPage() {
   const params = useParams();
-  const listingId = parseInt(params?.id as string);
+  
+  // Safely parse and validate listing ID
+  let listingId: number | null = null;
+  if (params?.id) {
+    const parsed = typeof params.id === 'string' 
+      ? parseInt(params.id, 10) 
+      : typeof params.id === 'number' 
+        ? params.id 
+        : null;
+    listingId = parsed && !isNaN(parsed) && parsed > 0 ? parsed : null;
+  }
+  
+  // Validate listing ID
+  if (!listingId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-destructive mb-4">Invalid listing ID</p>
+          <Button asChild>
+            <Link href="/seller/listings">Back to Listings</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
   const { data: listing, isLoading } = useSellerListing(listingId);
 
   if (isLoading) {

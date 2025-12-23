@@ -12,6 +12,10 @@ import type {
   TransactionCreate,
   ContractSignRequest,
 } from '@/types/transaction';
+import type {
+  BuyerConfirmation,
+  BuyerConfirmationCreate,
+} from '@/types/buyer-confirmation';
 
 export function useBuyerTransactions() {
   const { isAuthenticated } = useAuth();
@@ -165,6 +169,50 @@ export function useConfirmAccess() {
         error.response?.data?.detail || 'Failed to confirm access';
       toast.error(message);
     },
+  });
+}
+
+export function useCreateBuyerConfirmation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      transactionId,
+      data,
+    }: {
+      transactionId: number;
+      data: BuyerConfirmationCreate;
+    }) => {
+      const response = await apiClient.post<BuyerConfirmation>(
+        `/transactions/${transactionId}/confirmations`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.transactions.detail(variables.transactionId),
+      });
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.detail || 'Failed to record confirmation';
+      toast.error(message);
+    },
+  });
+}
+
+export function useTransactionConfirmations(transactionId: number) {
+  return useQuery({
+    queryKey: [...queryKeys.transactions.detail(transactionId), 'confirmations'],
+    queryFn: async () => {
+      const response = await apiClient.get<BuyerConfirmation[]>(
+        `/transactions/${transactionId}/confirmations`
+      );
+      return response.data;
+    },
+    enabled: !!transactionId && !isNaN(transactionId),
+    staleTime: 30 * 1000, // 30 seconds
   });
 }
 

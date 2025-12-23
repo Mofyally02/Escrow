@@ -22,13 +22,12 @@ export default function DashboardPage() {
 
     if (user && !hasRedirected.current) {
       hasRedirected.current = true;
-      // Redirect based on role - admins go to admin dashboard, others to buyer
+      // All authenticated users can access both buyer and seller routes
+      // Redirect admins to admin dashboard, others to buyer dashboard
       if (user.role === 'admin' || user.role === 'super_admin') {
         router.replace('/admin/dashboard');
-      } else if (user.role === 'seller') {
-        // Sellers can also buy, so show unified dashboard
-        router.replace('/buyer/dashboard');
       } else {
+        // Default to buyer dashboard - users can easily switch to seller routes via navbar
         router.replace('/buyer/dashboard');
       }
     }

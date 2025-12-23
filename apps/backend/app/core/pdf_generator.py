@@ -117,6 +117,21 @@ class PDFContractGenerator:
             <p><strong>5. DISPUTE RESOLUTION</strong></p>
             <p>Any disputes must be raised within 48 hours of credential release. 
             Escrow platform will mediate disputes in good faith.</p>
+            
+            <p><strong>6. PLATFORM ROLE ACKNOWLEDGMENT</strong></p>
+            <p>The Buyer acknowledges that Escrow acts solely as an escrow agent and marketplace 
+            facilitator. Escrow does not own, operate, access, or control the freelance account 
+            at any time. All risk of platform policy violations (e.g., terms of service bans) 
+            after transfer passes to the Buyer upon credential release.</p>
+            
+            <p>The Buyer understands that:</p>
+            <ul>
+                <li>Escrow administrators never receive or view account passwords</li>
+                <li>Verification is performed using provided proof materials only</li>
+                <li>Escrow does not log into or interfere with the account</li>
+                <li>The platform is not a broker, agent, or principal in this transaction</li>
+                <li>Escrow provides escrow services only and does not warrant account performance before or after sale</li>
+            </ul>
         </div>
     </div>
     

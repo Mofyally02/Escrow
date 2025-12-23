@@ -1,217 +1,149 @@
 'use client';
 
-import { useState } from 'react';
+import { useApproveListing, useRejectListing, useRequestMoreInfo } from '@/lib/hooks/useAdminData';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, HelpCircle, Loader2 } from 'lucide-react';
-import {
-  useApproveListing,
-  useRejectListing,
-  useRequestMoreInfo,
-} from '@/lib/hooks/useAdminData';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { useButtonState } from '@/lib/hooks/useButtonState';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface AdminActionButtonsProps {
   listingId: number;
   currentState: string;
 }
 
-export function AdminActionButtons({
-  listingId,
-  currentState,
-}: AdminActionButtonsProps) {
+export function AdminActionButtons({ listingId, currentState }: AdminActionButtonsProps) {
+  const approveMutation = useApproveListing();
+  const rejectMutation = useRejectListing();
+  const requestInfoMutation = useRequestMoreInfo();
+
+  const approveState = useButtonState({
+    onSuccess: () => toast.success('Listing approved successfully!'),
+    onError: (error) => toast.error(error.message || 'Failed to approve listing'),
+  });
+
+  const rejectState = useButtonState({
+    onSuccess: () => toast.success('Listing rejected'),
+    onError: (error) => toast.error(error.message || 'Failed to reject listing'),
+  });
+
+  const requestInfoState = useButtonState({
+    onSuccess: () => toast.success('Request sent to seller'),
+    onError: (error) => toast.error(error.message || 'Failed to send request'),
+  });
+
+  const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [showRequestDialog, setShowRequestDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [requestMessage, setRequestMessage] = useState('');
 
-  const approveListing = useApproveListing();
-  const rejectListing = useRejectListing();
-  const requestMoreInfo = useRequestMoreInfo();
-
-  const canApprove = currentState === 'under_review';
-  const canReject = currentState === 'under_review';
-  const canRequestInfo = currentState === 'under_review';
-
-  const handleApprove = () => {
-    approveListing.mutate({ id: listingId });
+  const handleApprove = async () => {
+    approveState.setLoading();
+    try {
+      await approveMutation.mutateAsync({ id: listingId });
+      approveState.setSuccess();
+    } catch (error: any) {
+      approveState.setError(error);
+    }
   };
 
-  const handleReject = () => {
-    if (!rejectReason.trim()) {
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      toast.error('Please provide a rejection reason');
       return;
     }
-    rejectListing.mutate(
-      {
+    rejectState.setLoading();
+    try {
+      await rejectMutation.mutateAsync({
         id: listingId,
-        data: { reason: rejectReason },
-      },
-      {
-        onSuccess: () => {
-          setShowRejectDialog(false);
-          setRejectReason('');
-        },
-      }
-    );
+        data: { reason: rejectionReason },
+      });
+      rejectState.setSuccess();
+      setShowRejectDialog(false);
+      setRejectionReason('');
+    } catch (error: any) {
+      rejectState.setError(error);
+    }
   };
 
-  const handleRequestInfo = () => {
-    if (!requestMessage.trim()) {
-      return;
-    }
-    requestMoreInfo.mutate(
-      {
+  const handleRequestInfo = async () => {
+    requestInfoState.setLoading();
+    try {
+      await requestInfoMutation.mutateAsync({
         id: listingId,
-        data: { reason: requestMessage },
-      },
-      {
-        onSuccess: () => {
-          setShowRequestDialog(false);
-          setRequestMessage('');
-        },
-      }
-    );
+        data: { reason: 'Please provide more information about this listing' },
+      });
+      requestInfoState.setSuccess();
+    } catch (error: any) {
+      requestInfoState.setError(error);
+    }
   };
+
+  if (currentState !== 'under_review') {
+    return null;
+  }
 
   return (
-    <>
-      <div className="flex gap-3">
-        {canApprove && (
-          <Button
-            onClick={handleApprove}
-            disabled={approveListing.isPending}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {approveListing.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Approving...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Approve
-              </>
-            )}
-          </Button>
-        )}
+    <div className="flex flex-col sm:flex-row gap-3">
+      <LoadingButton
+        isLoading={approveState.isLoading}
+        loadingText="Approving..."
+        onClick={handleApprove}
+        variant="default"
+        className="flex-1"
+      >
+        {approveState.isSuccess ? 'Approved!' : 'Approve Listing'}
+      </LoadingButton>
 
-        {canReject && (
-          <Button
-            variant="destructive"
-            onClick={() => setShowRejectDialog(true)}
-            disabled={rejectListing.isPending}
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            Reject
-          </Button>
-        )}
+      <LoadingButton
+        isLoading={requestInfoState.isLoading}
+        loadingText="Sending..."
+        onClick={handleRequestInfo}
+        variant="outline"
+        className="flex-1"
+      >
+        {requestInfoState.isSuccess ? 'Sent!' : 'Request More Info'}
+      </LoadingButton>
 
-        {canRequestInfo && (
-          <Button
-            variant="outline"
-            onClick={() => setShowRequestDialog(true)}
-            disabled={requestMoreInfo.isPending}
-          >
-            <HelpCircle className="h-4 w-4 mr-2" />
-            Request Info
-          </Button>
-        )}
-      </div>
-
-      {/* Reject Dialog */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Listing</DialogTitle>
-            <DialogDescription>
-              Provide a reason for rejection. This will be visible to the seller.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="reject-reason">Rejection Reason *</Label>
-              <Textarea
-                id="reject-reason"
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Explain why this listing is being rejected..."
-                rows={4}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <DialogFooter>
+      {showRejectDialog ? (
+        <div className="flex-1 flex flex-col gap-2">
+          <textarea
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="Rejection reason..."
+            className="px-3 py-2 border rounded-md text-sm"
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <LoadingButton
+              isLoading={rejectState.isLoading}
+              loadingText="Rejecting..."
+              onClick={handleReject}
+              variant="destructive"
+              className="flex-1"
+            >
+              Confirm Reject
+            </LoadingButton>
             <Button
               variant="outline"
               onClick={() => {
                 setShowRejectDialog(false);
-                setRejectReason('');
+                setRejectionReason('');
               }}
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectReason.trim() || rejectListing.isPending}
-            >
-              {rejectListing.isPending ? 'Rejecting...' : 'Reject Listing'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Request Info Dialog */}
-      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Request More Information</DialogTitle>
-            <DialogDescription>
-              Send a message to the seller requesting additional information or
-              proof.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="request-message">Message *</Label>
-              <Textarea
-                id="request-message"
-                value={requestMessage}
-                onChange={(e) => setRequestMessage(e.target.value)}
-                placeholder="What additional information do you need?"
-                rows={4}
-                className="mt-1"
-              />
-            </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowRequestDialog(false);
-                setRequestMessage('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleRequestInfo}
-              disabled={!requestMessage.trim() || requestMoreInfo.isPending}
-            >
-              {requestMoreInfo.isPending ? 'Sending...' : 'Send Request'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      ) : (
+        <LoadingButton
+          isLoading={rejectState.isLoading}
+          loadingText="Rejecting..."
+          onClick={() => setShowRejectDialog(true)}
+          variant="destructive"
+          className="flex-1"
+        >
+          Reject Listing
+        </LoadingButton>
+      )}
+    </div>
   );
 }

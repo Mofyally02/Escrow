@@ -4,13 +4,31 @@
  */
 
 export type TransactionState =
-  | 'pending'
+  // STEP 1: Initiate Purchase
+  | 'purchase_initiated'
+  // STEP 2: Payment
+  | 'payment_pending'
   | 'funds_held'
-  | 'contract_signed'
-  | 'credentials_released'
+  // STEP 3: Temporary Access
+  | 'temporary_access_granted'
+  // STEP 4: Verification Window
+  | 'verification_window'
+  // STEP 5: Ownership Agreement
+  | 'ownership_agreement_pending'
+  | 'ownership_agreement_signed'
+  // STEP 6: Final Confirmation
+  | 'funds_release_pending'
+  | 'funds_released'
+  // STEP 7: Transaction Closed
   | 'completed'
+  // Terminal states
   | 'refunded'
-  | 'disputed';
+  | 'disputed'
+  | 'cancelled'
+  // Legacy states (for backward compatibility)
+  | 'pending'
+  | 'contract_signed'
+  | 'credentials_released';
 
 export interface Transaction {
   id: number;

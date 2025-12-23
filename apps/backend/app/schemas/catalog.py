@@ -18,6 +18,7 @@ class CatalogListingResponse(BaseModel):
     monthly_earnings: Optional[int]
     account_age_months: Optional[int]
     rating: Optional[str]
+    state: ListingState  # CRITICAL: Include state so frontend can display correctly
     created_at: datetime
     
     class Config:

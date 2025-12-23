@@ -52,6 +52,13 @@ class AuditAction(str, enum.Enum):
     TRANSACTION_REFUNDED = "transaction_refunded"
     TRANSACTION_DISPUTED = "transaction_disputed"
 
+    # Legal document actions
+    LEGAL_DOCUMENT_CREATED = "legal_document_created"
+    LEGAL_DOCUMENT_UPDATED = "legal_document_updated"
+    LEGAL_DOCUMENT_PUBLISHED = "legal_document_published"
+    LEGAL_DOCUMENT_DELETED = "legal_document_deleted"
+    LEGAL_DOCUMENT_ACKNOWLEDGED = "legal_document_acknowledged"
+
 
 class AuditLog(Timestamped):
     __tablename__ = "audit_logs"

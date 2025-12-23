@@ -73,32 +73,19 @@ export default function BuyerDashboardPage() {
               </p>
             </div>
             {hasBothModes && (
-              <ModeSwitcher
-                currentMode="both"
-                onModeChange={changeMode}
-              />
+              <ModeSwitcher />
             )}
           </div>
           
           {/* Quick Switch Actions */}
-          {hasBothModes && (
+          {hasBothModes && mode === 'buyer' && (
             <div className="flex gap-3 flex-wrap">
-              {mode === 'buyer' && (
-                <Button variant="outline" asChild>
-                  <Link href="/seller/dashboard">
-                    <Store className="h-4 w-4 mr-2" />
-                    Switch to Selling Mode
-                  </Link>
-                </Button>
-              )}
-              {mode === 'seller' && (
-                <Button variant="outline" asChild>
-                  <Link href="/buyer/dashboard">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Switch to Buying Mode
-                  </Link>
-                </Button>
-              )}
+              <Button variant="outline" asChild>
+                <Link href="/seller/dashboard">
+                  <Store className="h-4 w-4 mr-2" />
+                  Switch to Selling Mode
+                </Link>
+              </Button>
             </div>
           )}
         </div>
@@ -170,7 +157,7 @@ export default function BuyerDashboardPage() {
               <Button size="lg" variant="outline" asChild>
                 <Link href="/buyer/purchases">View All Purchases</Link>
               </Button>
-              {canSell && (
+              {hasBothModes && (
                 <>
                   <Button size="lg" variant="outline" asChild>
                     <Link href="/seller/dashboard">

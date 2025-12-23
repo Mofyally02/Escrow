@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import Link from 'next/link';
 import { ListingStatusBadge } from '@/components/seller/listing-status-badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ interface ModerationQueueTableProps {
   isLoading?: boolean;
 }
 
-export function ModerationQueueTable({
+export const ModerationQueueTable = memo(function ModerationQueueTable({
   listings,
   isLoading,
 }: ModerationQueueTableProps) {
@@ -101,4 +102,4 @@ export function ModerationQueueTable({
       </div>
     </div>
   );
-}
+});

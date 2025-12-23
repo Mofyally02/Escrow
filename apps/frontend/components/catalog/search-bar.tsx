@@ -1,60 +1,109 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDebounce } from '@/lib/hooks/useDebounce';
+import { debounce } from '@/lib/utils/responsive';
+import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
+  onSearch?: (query: string) => void;
+  value?: string;
+  onChange?: (query: string) => void;
   placeholder?: string;
   className?: string;
+  debounceMs?: number;
 }
 
 export function SearchBar({
-  value,
+  onSearch,
+  value: controlledValue,
   onChange,
   placeholder = 'Search listings...',
   className,
+  debounceMs = 300,
 }: SearchBarProps) {
-  const [localValue, setLocalValue] = useState(value);
-  const debouncedValue = useDebounce(localValue, 300);
+  const [internalQuery, setInternalQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Use controlled value if provided, otherwise use internal state
+  const query = controlledValue !== undefined ? controlledValue : internalQuery;
+  const isControlled = controlledValue !== undefined;
 
-  // Sync local value with prop when it changes externally
+  // Use onSearch if provided, otherwise use onChange
+  const handleSearch = onSearch || onChange;
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((searchQuery: string) => {
+      if (handleSearch && typeof handleSearch === 'function') {
+        handleSearch(searchQuery);
+      }
+      setIsSearching(false);
+    }, debounceMs),
+    [handleSearch, debounceMs]
+  );
+
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    if (!handleSearch || typeof handleSearch !== 'function') {
+      return; // Don't do anything if no handler is provided
+    }
 
-  // Notify parent of debounced value changes
-  useEffect(() => {
-    onChange(debouncedValue);
-  }, [debouncedValue, onChange]);
+    if (query.trim()) {
+      setIsSearching(true);
+      debouncedSearch(query);
+    } else {
+      setIsSearching(false);
+      handleSearch('');
+    }
+  }, [query, debouncedSearch, handleSearch]);
 
-  const clearSearch = () => {
-    setLocalValue('');
-    onChange('');
+  const handleChange = (newQuery: string) => {
+    if (!isControlled) {
+      setInternalQuery(newQuery);
+    }
+    if (onChange) {
+      onChange(newQuery);
+    }
+  };
+
+  const handleClear = () => {
+    if (!isControlled) {
+      setInternalQuery('');
+    }
+    if (handleSearch && typeof handleSearch === 'function') {
+      handleSearch('');
+    }
+    setIsSearching(false);
   };
 
   return (
-    <div className={`relative ${className}`}>
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <input
-        type="text"
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      {localValue && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearSearch}
-          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+    <div className={cn('relative', className)}>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          value={query}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder={placeholder}
+          className="pl-10 pr-10"
+        />
+        {query && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
+            onClick={handleClear}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      {isSearching && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
       )}
     </div>
   );

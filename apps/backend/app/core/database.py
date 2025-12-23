@@ -22,12 +22,19 @@ elif not settings.DATABASE_URL.startswith("postgresql"):
     )
 else:
     # PostgreSQL configuration (required for production)
+    # Optimized connection pool settings for better performance
     engine = create_engine(
         settings.DATABASE_URL,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
-        echo=False
+        pool_pre_ping=True,  # Verify connections before using
+        pool_size=15,  # Increased pool size for better concurrency
+        max_overflow=25,  # More overflow connections for peak loads
+        pool_recycle=3600,  # Recycle connections after 1 hour
+        echo=False,
+        # Query optimization
+        connect_args={
+            "connect_timeout": 10,  # 10 second connection timeout
+            "application_name": "escrow_api",  # Helpful for monitoring
+        }
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -11,7 +11,10 @@ from app.models.listing import ListingState
 from app.models.transaction import TransactionState
 from app.crud import transaction as transaction_crud, listing as listing_crud
 from app.crud import catalog as catalog_crud
+from app.crud import buyer_confirmation as confirmation_crud
 from app.schemas.transaction import TransactionCreate, TransactionResponse, TransactionDetailResponse
+from app.schemas.buyer_confirmation import BuyerConfirmationCreate, BuyerConfirmationResponse
+from app.models.buyer_confirmation import ConfirmationStage
 from app.core.payment import PaystackService
 from app.core.events import AuditLogger
 from app.core.config import settings
@@ -204,7 +207,7 @@ async def confirm_access(
         )
     
     # Verify transaction state
-    if transaction.state != TransactionState.CREDENTIALS_RELEASED:
+    if transaction.state != TransactionState.TEMPORARY_ACCESS_GRANTED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Access can only be confirmed after credentials are released. Current state: {transaction.state.value}"
@@ -296,4 +299,103 @@ async def confirm_access(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to complete transaction: {str(e)}"
         )
+
+
+@router.post("/{transaction_id}/confirmations", response_model=BuyerConfirmationResponse, status_code=status.HTTP_201_CREATED)
+async def create_buyer_confirmation(
+    request: Request,
+    transaction_id: int,
+    confirmation_data: BuyerConfirmationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_buyer)
+):
+    """
+    Record a buyer confirmation at a specific stage.
+    This creates an immutable audit trail of buyer consent.
+    """
+    # Get transaction
+    transaction = transaction_crud.get_transaction_by_id(db, transaction_id)
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+    
+    # Verify buyer owns this transaction
+    if transaction.buyer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to create confirmations for this transaction"
+        )
+    
+    # Verify stage matches transaction state
+    stage_state_map = {
+        ConfirmationStage.PAYMENT_COMPLETE: TransactionState.FUNDS_HELD,
+        ConfirmationStage.CONTRACT_SIGNING: TransactionState.FUNDS_HELD,
+        ConfirmationStage.CREDENTIAL_REVEAL: TransactionState.TEMPORARY_ACCESS_GRANTED,
+        ConfirmationStage.ACCESS_CONFIRMATION: TransactionState.TEMPORARY_ACCESS_GRANTED,
+        ConfirmationStage.TRANSACTION_COMPLETE: TransactionState.COMPLETED,
+    }
+    
+    required_state = stage_state_map.get(confirmation_data.stage)
+    if required_state and transaction.state != required_state:
+        # Allow payment_complete and contract_signing during funds_held
+        if confirmation_data.stage in [ConfirmationStage.PAYMENT_COMPLETE, ConfirmationStage.CONTRACT_SIGNING]:
+            if transaction.state != TransactionState.FUNDS_HELD:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Confirmation stage {confirmation_data.stage.value} requires transaction state {TransactionState.FUNDS_HELD.value}. Current state: {transaction.state.value}"
+                )
+        elif transaction.state != required_state:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Confirmation stage {confirmation_data.stage.value} requires transaction state {required_state.value}. Current state: {transaction.state.value}"
+            )
+    
+    # Get IP and user agent
+    ip_address = get_client_ip(request)
+    user_agent = request.headers.get("user-agent")
+    
+    # Create confirmation
+    confirmation = confirmation_crud.create_buyer_confirmation(
+        db=db,
+        transaction_id=transaction_id,
+        buyer_id=current_user.id,
+        stage=confirmation_data.stage,
+        confirmation_text=confirmation_data.confirmation_text,
+        checkbox_label=confirmation_data.checkbox_label,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    
+    return BuyerConfirmationResponse.model_validate(confirmation)
+
+
+@router.get("/{transaction_id}/confirmations", response_model=List[BuyerConfirmationResponse])
+async def get_transaction_confirmations(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all buyer confirmations for a transaction.
+    Buyers can see their own confirmations, admins can see all.
+    """
+    # Get transaction
+    transaction = transaction_crud.get_transaction_by_id(db, transaction_id)
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+    
+    # Verify access (buyer or admin)
+    if transaction.buyer_id != current_user.id and current_user.role.value not in ["admin", "super_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view confirmations for this transaction"
+        )
+    
+    confirmations = confirmation_crud.get_confirmations_by_transaction(db, transaction_id)
+    return [BuyerConfirmationResponse.model_validate(c) for c in confirmations]
 

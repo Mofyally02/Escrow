@@ -21,12 +21,15 @@ export function useAdminListings(filters?: { state?: ListingState }) {
       if (filters?.state) {
         params.append('state', filters.state);
       }
-      const response = await apiClient.get<{ listings: AdminListing[] }>(
+      // Backend returns List[ListingDetailResponse] directly, not wrapped
+      const response = await apiClient.get<AdminListing[]>(
         `/admin/listings?${params.toString()}`
       );
-      return response.data.listings;
+      return response.data;
     },
     staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes cache
+    refetchOnWindowFocus: false, // Don't refetch on focus
   });
 }
 
@@ -34,10 +37,11 @@ export function useAdminListing(id: number) {
   return useQuery({
     queryKey: queryKeys.admin.listings({ id }),
     queryFn: async () => {
-      const response = await apiClient.get<{ listing: AdminListing }>(
+      // Backend returns ListingDetailResponse directly, not wrapped
+      const response = await apiClient.get<AdminListing>(
         `/admin/listings/${id}`
       );
-      return response.data.listing;
+      return response.data;
     },
     enabled: !!id && !isNaN(id),
     staleTime: 30 * 1000,
@@ -55,18 +59,25 @@ export function useApproveListing() {
       id: number;
       data?: ListingActionRequest;
     }) => {
-      const response = await apiClient.post<{ listing: AdminListing }>(
+      // Backend returns ListingResponse directly, not wrapped
+      const response = await apiClient.post<AdminListing>(
         `/admin/listings/${id}/approve`,
         data || {}
       );
-      return response.data.listing;
+      return response.data;
     },
     onSuccess: (listing) => {
+      // Invalidate all admin listing queries to refresh the list
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.listings() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.listings({ id: listing.id }),
+      });
       queryClient.invalidateQueries({
         queryKey: queryKeys.listings.detail(listing.id),
       });
-      toast.success('Listing approved successfully!');
+      // Also invalidate catalog to show newly approved listings
+      queryClient.invalidateQueries({ queryKey: queryKeys.catalog.all });
+      toast.success('Listing approved successfully! It is now visible to buyers.');
     },
     onError: (error: any) => {
       const message =
@@ -88,11 +99,12 @@ export function useRejectListing() {
       data: ListingActionRequest;
     }) => {
       // Backend expects 'reason' as a query parameter for POST
-      const response = await apiClient.post<{ listing: AdminListing }>(
+      // Backend returns ListingResponse directly, not wrapped
+      const response = await apiClient.post<AdminListing>(
         `/admin/listings/${id}/reject?reason=${encodeURIComponent(data.reason || '')}`,
         {}
       );
-      return response.data.listing;
+      return response.data;
     },
     onSuccess: (listing) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.listings() });
@@ -121,11 +133,12 @@ export function useRequestMoreInfo() {
       data: ListingActionRequest;
     }) => {
       // Backend expects 'message' as a query parameter for POST
-      const response = await apiClient.post<{ listing: AdminListing }>(
+      // Backend returns ListingResponse directly, not wrapped
+      const response = await apiClient.post<AdminListing>(
         `/admin/listings/${id}/request-info?message=${encodeURIComponent(data.reason || data.notes || '')}`,
         {}
       );
-      return response.data.listing;
+      return response.data;
     },
     onSuccess: (listing) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.listings() });
